@@ -1,0 +1,40 @@
+# Registro de Horas
+
+App personal de marcaje de horas, licencias/feriados, estadísticas y control de saldo de horas.
+100% local: no usa servidor ni base de datos externa — todo se guarda en el `localStorage` del
+navegador donde la abras (o del teléfono, si se instala como PWA).
+
+## Funciones
+
+- **Marcaje**: hasta 2 bloques de horario por día, nota/bitácora, autocompletado desde tu horario
+  base, botones +/- 1 hora, historial mensual navegable.
+- **Licencias y Feriados**: licencia médica, permiso especial u otro, y feriados — cada uno con un
+  interruptor de si ajusta o no la meta de horas de ese día.
+- **Estadísticas**: cumplimiento semanal y mensual, balance acumulado (horas a favor/en contra),
+  promedio de horas por día, horas extra vs. faltantes del mes, conteo de feriados/licencias.
+- **Funciones y Proyectos**: bitácora aparte de responsabilidades o proyectos asignados.
+- **Configuración**: metas de horas, horario base, días laborales, fecha desde la que se calcula
+  el balance.
+- **Exportar a Excel**: reporte `.xlsx` por rango de fechas, con hoja opcional de proyectos.
+- **Respaldo**: exportar/importar todos los datos en `.json` (la importación nunca sobrescribe un
+  marcaje ya guardado) y aviso si llevas más de 7 días sin respaldar.
+- **Datos de ejemplo**: botón en Configuración para previsualizar la app con datos de muestra,
+  removibles en un clic sin tocar los datos reales.
+
+## Uso local
+
+Necesita servirse por HTTP (no abrir el `index.html` directo con doble clic), porque usa un
+service worker y módulos:
+
+```bash
+cd registro-horas
+python3 -m http.server 8000
+```
+
+Luego abre `http://localhost:8000`.
+
+## Privacidad
+
+Ningún dato sale del dispositivo: no hay backend, no hay analítica, no hay llamadas de red salvo
+para cargar los propios archivos de la app. El respaldo `.json` y el reporte `.xlsx` se generan y
+descargan localmente en el navegador.

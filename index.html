@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Registro de Horas</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#2854a6" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" />
+<link rel="apple-touch-icon" href="icon-apple-touch.png" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>🕒 Registro de Horas</h1>
+    <p class="subtitle">Marcaje diario, estadísticas y control de saldo de horas</p>
+    <div class="header-actions">
+      <button type="button" id="open-export-btn" class="btn btn-header">📊 Exportar a Excel</button>
+      <button type="button" id="save-backup-btn" class="btn btn-header">💾 Guardar respaldo (.json)</button>
+      <label for="import-file-input" class="btn btn-header file-label">📂 Importar respaldo (.json)</label>
+      <input type="file" id="import-file-input" accept="application/json" class="hidden" />
+    </div>
+  </header>
+
+  <div class="app-alerts" id="app-alerts"></div>
+
+  <nav class="tabs" id="tabs">
+    <button type="button" class="tab-btn active" id="tab-marcaje-btn" data-tab="marcaje">Marcaje</button>
+    <button type="button" class="tab-btn" id="tab-estadisticas-btn" data-tab="estadisticas">Estadísticas</button>
+    <button type="button" class="tab-btn" id="tab-licencias-btn" data-tab="licencias">Licencias y Feriados</button>
+    <button type="button" class="tab-btn" id="tab-proyectos-btn" data-tab="proyectos">Funciones y Proyectos</button>
+    <button type="button" class="tab-btn" id="tab-config-btn" data-tab="config">Configuración</button>
+  </nav>
+
+  <main class="container">
+
+    <!-- ===================== TAB: MARCAJE ===================== -->
+    <section id="tab-marcaje" class="tab-panel">
+      <section class="form-section">
+        <h2 id="marcaje-form-title">Registrar jornada</h2>
+        <form id="marcaje-form" novalidate>
+          <input type="hidden" id="marcaje-id" />
+
+          <div class="field">
+            <label for="marcaje-fecha">Fecha</label>
+            <div class="field-inline">
+              <input type="date" id="marcaje-fecha" />
+              <button type="button" class="btn btn-secondary btn-small" id="marcaje-marcar-feriado-btn">📅 Marcar este día como feriado</button>
+            </div>
+          </div>
+
+          <div class="field" id="marcaje-licencia-banner" class="hidden">
+            <div class="banner banner-info" id="marcaje-licencia-banner-text"></div>
+          </div>
+
+          <div class="block-group">
+            <h3>Bloque 1 <span class="label-hint">(ej. mañana)</span></h3>
+            <div class="field-row">
+              <div class="field">
+                <label for="marcaje-b1-entrada">Entrada</label>
+                <input type="time" id="marcaje-b1-entrada" />
+              </div>
+              <div class="field">
+                <label for="marcaje-b1-salida">Salida</label>
+                <input type="time" id="marcaje-b1-salida" />
+              </div>
+            </div>
+            <span class="error-msg" id="error-marcaje-b1"></span>
+          </div>
+
+          <div class="block-group">
+            <div class="block-group-header">
+              <h3>Bloque 2 <span class="label-hint">(ej. tarde)</span></h3>
+              <label class="switch-option">
+                <input type="checkbox" id="marcaje-b2-activo" />
+                Usar segundo bloque hoy
+              </label>
+            </div>
+            <div class="field-row" id="marcaje-b2-fields">
+              <div class="field">
+                <label for="marcaje-b2-entrada">Entrada</label>
+                <input type="time" id="marcaje-b2-entrada" />
+              </div>
+              <div class="field">
+                <label for="marcaje-b2-salida">Salida</label>
+                <input type="time" id="marcaje-b2-salida" />
+              </div>
+            </div>
+            <span class="error-msg" id="error-marcaje-b2"></span>
+          </div>
+
+          <div class="field">
+            <label for="marcaje-nota">Notas / bitácora del día <span class="label-hint">(opcional)</span></label>
+            <textarea id="marcaje-nota" rows="2" placeholder="Ej: Asistencia a colegio X, elaboración de taller..."></textarea>
+          </div>
+
+          <div class="total-preview" id="marcaje-total-preview">Total del día: 0h 00m</div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="marcaje-submit-btn">Guardar jornada</button>
+            <button type="button" class="btn btn-secondary hidden" id="marcaje-cancel-btn">Cancelar edición</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="list-section">
+        <div class="list-header">
+          <h2>Historial</h2>
+          <div class="month-nav">
+            <button type="button" class="btn btn-icon" id="marcaje-mes-prev">◀</button>
+            <span id="marcaje-mes-label">—</span>
+            <button type="button" class="btn btn-icon" id="marcaje-mes-next">▶</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="marcaje-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Día</th>
+                <th>Bloque 1</th>
+                <th>Bloque 2</th>
+                <th>Total</th>
+                <th>Nota</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="marcaje-table-body"></tbody>
+          </table>
+          <p class="empty-state hidden" id="marcaje-empty-state">Sin registros este mes.</p>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: ESTADÍSTICAS ===================== -->
+    <section id="tab-estadisticas" class="tab-panel hidden">
+      <section class="stats-cards">
+        <div class="stat-card">
+          <span class="stat-label">Semana actual</span>
+          <div class="gauge" id="stats-gauge-semana"></div>
+          <span class="stat-value" id="stats-semana-value">0h / 0h</span>
+          <span class="stat-sub" id="stats-semana-sub"></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Mes actual</span>
+          <div class="gauge" id="stats-gauge-mes"></div>
+          <span class="stat-value" id="stats-mes-value">0h / 0h</span>
+          <span class="stat-sub" id="stats-mes-sub"></span>
+        </div>
+        <div class="stat-card balance-card" id="stats-balance-card">
+          <span class="stat-label">Balance acumulado</span>
+          <span class="balance-value" id="stats-balance-value">0h 00m</span>
+          <span class="balance-tag" id="stats-balance-tag">—</span>
+          <span class="stat-sub" id="stats-balance-sub"></span>
+        </div>
+      </section>
+
+      <section class="stats-cards">
+        <div class="stat-card">
+          <span class="stat-label">Promedio horas/día <span class="label-hint">(mes actual)</span></span>
+          <span class="stat-value" id="stats-promedio-value">0h 00m</span>
+          <span class="stat-sub" id="stats-promedio-sub"></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Extra vs. faltante <span class="label-hint">(mes actual)</span></span>
+          <span class="stat-value" id="stats-extra-faltante-value">—</span>
+          <span class="stat-sub" id="stats-extra-faltante-sub"></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Feriados y licencias <span class="label-hint">(mes actual)</span></span>
+          <span class="stat-value" id="stats-especiales-value">0</span>
+          <span class="stat-sub" id="stats-especiales-sub"></span>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Detalle semanal</h2>
+        <div class="table-wrap">
+          <table class="data-table" id="stats-week-table">
+            <thead>
+              <tr><th>Día</th><th>Fecha</th><th>Trabajado</th><th>Estado</th></tr>
+            </thead>
+            <tbody id="stats-week-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: LICENCIAS ===================== -->
+    <section id="tab-licencias" class="tab-panel hidden">
+      <section class="form-section">
+        <h2 id="licencia-form-title">Registrar licencia / ausencia justificada</h2>
+        <form id="licencia-form" novalidate>
+          <input type="hidden" id="licencia-id" />
+          <div class="field-row">
+            <div class="field">
+              <label for="licencia-inicio">Desde</label>
+              <input type="date" id="licencia-inicio" />
+            </div>
+            <div class="field">
+              <label for="licencia-fin">Hasta</label>
+              <input type="date" id="licencia-fin" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="licencia-tipo">Tipo</label>
+            <select id="licencia-tipo"></select>
+          </div>
+          <div class="field">
+            <label for="licencia-detalle">Detalle <span class="label-hint">(opcional)</span></label>
+            <input type="text" id="licencia-detalle" placeholder="Ej: Reposo por gripe, certificado adjunto / 18 de Septiembre" />
+          </div>
+          <label class="switch-option">
+            <input type="checkbox" id="licencia-ajusta-meta" checked />
+            Ajusta la meta de horas (no cuenta como incumplimiento)
+          </label>
+          <span class="error-msg" id="error-licencia"></span>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="licencia-submit-btn">Guardar</button>
+            <button type="button" class="btn btn-secondary hidden" id="licencia-cancel-btn">Cancelar edición</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="list-section">
+        <h2>Licencias registradas</h2>
+        <div class="table-wrap">
+          <table class="data-table" id="licencias-table">
+            <thead>
+              <tr><th>Desde</th><th>Hasta</th><th>Días</th><th>Tipo</th><th>Detalle</th><th>Ajusta meta</th><th></th></tr>
+            </thead>
+            <tbody id="licencias-table-body"></tbody>
+          </table>
+          <p class="empty-state hidden" id="licencias-empty-state">Sin licencias registradas.</p>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: PROYECTOS ===================== -->
+    <section id="tab-proyectos" class="tab-panel hidden">
+      <section class="form-section">
+        <h2 id="proyecto-form-title">Registrar función / proyecto</h2>
+        <form id="proyecto-form" novalidate>
+          <input type="hidden" id="proyecto-id" />
+          <div class="field">
+            <label for="proyecto-fecha">Fecha</label>
+            <input type="date" id="proyecto-fecha" />
+          </div>
+          <div class="field">
+            <label for="proyecto-titulo">Función / Proyecto</label>
+            <input type="text" id="proyecto-titulo" placeholder="Ej: Elaboración del proyecto X" />
+          </div>
+          <div class="field">
+            <label for="proyecto-descripcion">Descripción <span class="label-hint">(opcional)</span></label>
+            <textarea id="proyecto-descripcion" rows="2" placeholder="Detalle de la responsabilidad o avance"></textarea>
+          </div>
+          <span class="error-msg" id="error-proyecto"></span>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="proyecto-submit-btn">Guardar</button>
+            <button type="button" class="btn btn-secondary hidden" id="proyecto-cancel-btn">Cancelar edición</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="list-section">
+        <h2>Historial de funciones y proyectos</h2>
+        <div class="table-wrap">
+          <table class="data-table" id="proyectos-table">
+            <thead>
+              <tr><th>Fecha</th><th>Función / Proyecto</th><th>Descripción</th><th></th></tr>
+            </thead>
+            <tbody id="proyectos-table-body"></tbody>
+          </table>
+          <p class="empty-state hidden" id="proyectos-empty-state">Sin funciones o proyectos registrados.</p>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: CONFIGURACIÓN ===================== -->
+    <section id="tab-config" class="tab-panel hidden">
+      <section class="form-section">
+        <h2>Metas de horas</h2>
+        <form id="config-form" novalidate>
+          <div class="field-row">
+            <div class="field">
+              <label for="config-meta-semanal">Horas requeridas por semana</label>
+              <input type="number" id="config-meta-semanal" min="0" step="0.5" />
+            </div>
+            <div class="field">
+              <label for="config-meta-mensual">Horas requeridas por mes</label>
+              <input type="number" id="config-meta-mensual" min="0" step="0.5" />
+            </div>
+          </div>
+
+          <h2>Horario base</h2>
+          <p class="label-hint">Se usa para autocompletar el marcaje de un nuevo día.</p>
+          <div class="block-group">
+            <h3>Bloque 1</h3>
+            <div class="field-row">
+              <div class="field">
+                <label for="config-b1-entrada">Entrada</label>
+                <input type="time" id="config-b1-entrada" />
+              </div>
+              <div class="field">
+                <label for="config-b1-salida">Salida</label>
+                <input type="time" id="config-b1-salida" />
+              </div>
+            </div>
+          </div>
+          <div class="block-group">
+            <div class="block-group-header">
+              <h3>Bloque 2</h3>
+              <label class="switch-option">
+                <input type="checkbox" id="config-b2-activo" />
+                Activar por defecto
+              </label>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="config-b2-entrada">Entrada</label>
+                <input type="time" id="config-b2-entrada" />
+              </div>
+              <div class="field">
+                <label for="config-b2-salida">Salida</label>
+                <input type="time" id="config-b2-salida" />
+              </div>
+            </div>
+          </div>
+
+          <h2>Días laborales</h2>
+          <div class="dias-laborales" id="config-dias-laborales"></div>
+
+          <h2>Balance</h2>
+          <div class="field">
+            <label for="config-fecha-inicio-balance">Calcular balance acumulado desde <span class="label-hint">(opcional, por defecto tu primer registro)</span></label>
+            <input type="date" id="config-fecha-inicio-balance" />
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar configuración</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="form-section">
+        <h2>Datos de ejemplo</h2>
+        <p class="label-hint">
+          Agrega jornadas, licencias, feriados y proyectos de muestra (últimas 3 semanas) para
+          ver cómo se ven las estadísticas y el reporte con datos reales. No pisa ningún marcaje
+          que ya hayas guardado, y se pueden quitar en cualquier momento sin afectar tus datos.
+        </p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="load-mock-data-btn">🧪 Cargar datos de ejemplo</button>
+          <button type="button" class="btn btn-danger" id="remove-mock-data-btn">Quitar datos de ejemplo</button>
+        </div>
+      </section>
+    </section>
+
+  </main>
+
+  <!-- ===================== MODAL: EXPORTAR ===================== -->
+  <div class="modal-overlay hidden" id="export-modal-overlay">
+    <div class="modal">
+      <h2>Exportar a Excel</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="export-inicio">Desde</label>
+          <input type="date" id="export-inicio" />
+        </div>
+        <div class="field">
+          <label for="export-fin">Hasta</label>
+          <input type="date" id="export-fin" />
+        </div>
+      </div>
+      <label class="switch-option">
+        <input type="checkbox" id="export-incluir-proyectos" checked />
+        Incluir hoja "Funciones y Proyectos"
+      </label>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="export-confirm-btn">Descargar .xlsx</button>
+        <button type="button" class="btn btn-secondary" id="export-cancel-btn">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: CONFIRMAR IMPORTACIÓN ===================== -->
+  <div class="modal-overlay hidden" id="import-confirm-modal">
+    <div class="modal">
+      <h2>Confirmar importación</h2>
+      <p id="import-confirm-message"></p>
+      <label class="switch-option hidden" id="import-confirm-config-option">
+        <input type="checkbox" id="import-confirm-config-checkbox" checked />
+        Reemplazar mi configuración actual con la del respaldo
+      </label>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="import-confirm-ok-btn">Confirmar importación</button>
+        <button type="button" class="btn btn-secondary" id="import-confirm-cancel-btn">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="js/constants.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/alerts.js"></script>
+  <script src="js/tabs.js"></script>
+  <script src="js/marcaje.js"></script>
+  <script src="js/estadisticas.js"></script>
+  <script src="js/licencias.js"></script>
+  <script src="js/proyectos.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/backup.js"></script>
+  <script src="js/mockdata.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
