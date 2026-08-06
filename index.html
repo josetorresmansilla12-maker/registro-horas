@@ -147,8 +147,23 @@
           <span class="stat-value" id="stats-mes-value">0h / 0h</span>
           <span class="stat-sub" id="stats-mes-sub"></span>
         </div>
+      </section>
+
+      <section class="stats-cards">
+        <div class="stat-card balance-card" id="stats-balance-semana-card">
+          <span class="stat-label">Balance semanal</span>
+          <span class="balance-value" id="stats-balance-semana-value">0h 00m</span>
+          <span class="balance-tag" id="stats-balance-semana-tag">—</span>
+          <span class="stat-sub" id="stats-balance-semana-sub"></span>
+        </div>
+        <div class="stat-card balance-card" id="stats-balance-mes-card">
+          <span class="stat-label">Balance mensual</span>
+          <span class="balance-value" id="stats-balance-mes-value">0h 00m</span>
+          <span class="balance-tag" id="stats-balance-mes-tag">—</span>
+          <span class="stat-sub" id="stats-balance-mes-sub"></span>
+        </div>
         <div class="stat-card balance-card" id="stats-balance-card">
-          <span class="stat-label">Balance acumulado</span>
+          <span class="stat-label">Balance acumulado <span class="label-hint">(general)</span></span>
           <span class="balance-value" id="stats-balance-value">0h 00m</span>
           <span class="balance-tag" id="stats-balance-tag">—</span>
           <span class="stat-sub" id="stats-balance-sub"></span>
@@ -162,11 +177,6 @@
           <span class="stat-sub" id="stats-promedio-sub"></span>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Extra vs. faltante <span class="label-hint">(mes actual)</span></span>
-          <span class="stat-value" id="stats-extra-faltante-value">—</span>
-          <span class="stat-sub" id="stats-extra-faltante-sub"></span>
-        </div>
-        <div class="stat-card">
           <span class="stat-label">Feriados y licencias <span class="label-hint">(mes actual)</span></span>
           <span class="stat-value" id="stats-especiales-value">0</span>
           <span class="stat-sub" id="stats-especiales-sub"></span>
@@ -174,15 +184,16 @@
       </section>
 
       <section class="form-section">
-        <h2>Detalle semanal</h2>
-        <div class="table-wrap">
-          <table class="data-table" id="stats-week-table">
-            <thead>
-              <tr><th>Día</th><th>Fecha</th><th>Trabajado</th><th>Estado</th></tr>
-            </thead>
-            <tbody id="stats-week-table-body"></tbody>
-          </table>
+        <div class="list-header">
+          <h2>Asistencia mensual, semana por semana</h2>
+          <div class="month-nav">
+            <button type="button" class="btn btn-icon" id="stats-mes-prev">◀</button>
+            <span id="stats-mes-label">—</span>
+            <button type="button" class="btn btn-icon" id="stats-mes-next">▶</button>
+          </div>
         </div>
+        <p class="label-hint">Cada semana se guarda plegada aquí abajo a medida que pasa — despliégala para revisar el detalle día por día.</p>
+        <div id="stats-weeks-container"></div>
       </section>
     </section>
 

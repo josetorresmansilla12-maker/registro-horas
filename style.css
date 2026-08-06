@@ -575,6 +575,67 @@ body {
   accent-color: var(--color-primary);
 }
 
+/* ---------- Acordeón de semanas (Estadísticas) ---------- */
+
+.week-group {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.week-group summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--color-tint);
+}
+
+.week-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.week-group summary::marker {
+  display: none;
+  content: "";
+}
+
+.week-group summary::before {
+  content: "▸";
+  margin-right: 8px;
+  display: inline-block;
+  transition: transform 0.15s ease;
+  color: var(--color-text-muted);
+}
+
+.week-group[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.week-group-title {
+  font-weight: 700;
+  flex: 1 1 auto;
+}
+
+.week-group-meta {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.week-group .table-wrap {
+  padding: 0 16px 16px;
+}
+
+.week-group .data-table {
+  margin: 0;
+}
+
 /* ---------- Modal ---------- */
 
 .modal-overlay {

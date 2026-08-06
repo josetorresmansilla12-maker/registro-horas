@@ -247,13 +247,14 @@ function rhContarDiasEspeciales(start, end) {
   return { feriados: feriados, licencias: licencias, total: feriados + licencias };
 }
 
-// Meta mensual ajustada: descuenta la meta diaria por cada día laboral con
-// licencia dentro del mes, para que esos días no cuenten como incumplimiento.
-function rhMetaMensualAjustada(mesIso) {
+// Meta ajustada para un rango cualquiera: descuenta la meta diaria por cada
+// día laboral con licencia/feriado (que ajusta meta) dentro del rango, para
+// que esos días no cuenten como incumplimiento. `metaBaseHoras` es la meta
+// completa del período (ej. config.metaSemanal o config.metaMensual).
+function rhMetaAjustadaEnRango(start, end, metaBaseHoras) {
   var config = rhLoadConfig();
   var metaDiaria = rhMetaDiariaMinutos(config);
-  var range = rhMonthRange(mesIso);
-  var dias = rhDaysBetweenInclusive(range.start, range.end);
+  var dias = rhDaysBetweenInclusive(start, end);
   var diasLicenciaLaborales = 0;
   dias.forEach(function (iso) {
     var d = rhParseISO(iso);
@@ -261,7 +262,22 @@ function rhMetaMensualAjustada(mesIso) {
     var licencia = rhLicenciaForDate(iso);
     if (esLaboral && licencia && rhLicenciaAjustaMeta(licencia)) diasLicenciaLaborales++;
   });
-  var metaMensualMin = rhHoursToMinutes(config.metaMensual);
+  var metaBaseMin = rhHoursToMinutes(metaBaseHoras);
   var descuentoMin = diasLicenciaLaborales * metaDiaria;
-  return Math.max(0, metaMensualMin - descuentoMin);
+  return Math.max(0, metaBaseMin - descuentoMin);
+}
+
+// Meta semanal ajustada para la semana que contiene `fechaIso`.
+function rhMetaSemanalAjustada(fechaIso) {
+  var config = rhLoadConfig();
+  var range = rhWeekRange(fechaIso);
+  return rhMetaAjustadaEnRango(range.start, range.end, config.metaSemanal);
+}
+
+// Meta mensual ajustada: descuenta la meta diaria por cada día laboral con
+// licencia dentro del mes, para que esos días no cuenten como incumplimiento.
+function rhMetaMensualAjustada(mesIso) {
+  var config = rhLoadConfig();
+  var range = rhMonthRange(mesIso);
+  return rhMetaAjustadaEnRango(range.start, range.end, config.metaMensual);
 }
