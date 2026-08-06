@@ -157,6 +157,8 @@ rhEl("import-confirm-ok-btn").addEventListener("click", function () {
   }
 
   renderMarcajeTable();
+  rhMarcajeLoadFecha(marcajeFechaInput.value || rhTodayISO());
+  renderEstadisticas();
   renderLicencias();
   renderProyectos();
   renderConfigForm();
