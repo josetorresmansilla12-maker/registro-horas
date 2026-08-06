@@ -31,6 +31,14 @@ function rhFormatDateDisplay(iso) {
   return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0") + "/" + d.getFullYear();
 }
 
+// Formato orientativo corto: "09 ago" (sin año), usado al listar/filtrar
+// semanas donde el año casi nunca aporta información nueva.
+function rhFormatDateShort(iso) {
+  if (!iso) return "—";
+  var d = rhParseISO(iso);
+  return String(d.getDate()).padStart(2, "0") + " " + RH_MESES_ABREV[d.getMonth()];
+}
+
 function rhDayOfWeekLabel(iso, corto) {
   var d = rhParseISO(iso);
   var entry = RH_DIAS_SEMANA[d.getDay()];

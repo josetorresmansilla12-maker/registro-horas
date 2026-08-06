@@ -366,12 +366,39 @@
         </div>
       </section>
 
+      <section class="form-section">
+        <h2>Papelera <span class="label-hint" id="papelera-count-hint"></span></h2>
+        <p class="label-hint">
+          Lo que eliminas (jornadas, licencias/feriados y proyectos) queda guardado aquí por
+          30 días antes de borrarse en forma definitiva, por si eliminaste algo por error.
+        </p>
+        <p class="empty-state hidden" id="papelera-empty-state">La papelera está vacía.</p>
+        <div class="table-wrap hidden" id="papelera-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Detalle</th>
+                <th>Eliminado</th>
+                <th>Vence en</th>
+                <th class="col-actions">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="papelera-table-body"></tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary btn-small hidden" id="papelera-vaciar-btn">Vaciar papelera</button>
+        </div>
+      </section>
+
       <section class="form-section danger-zone">
         <h2>Zona de peligro</h2>
         <p class="label-hint">
-          Elimina permanentemente todas tus jornadas, licencias/feriados y proyectos guardados en
-          este dispositivo. Tu configuración no se modifica. Te recomendamos hacer un respaldo
-          (.json) antes por si acaso — esta acción no se puede deshacer.
+          Elimina todas tus jornadas, licencias/feriados y proyectos guardados en este dispositivo
+          (pasan a la papelera de arriba por 30 días, así que se pueden recuperar). Tu
+          configuración no se modifica. Te recomendamos igual hacer un respaldo (.json) antes por
+          si acaso.
         </p>
         <div class="form-actions">
           <button type="button" class="btn btn-danger" id="delete-all-data-btn">🗑️ Eliminar todos los datos</button>
@@ -432,6 +459,7 @@
   <script src="js/estadisticas.js"></script>
   <script src="js/licencias.js"></script>
   <script src="js/proyectos.js"></script>
+  <script src="js/papelera.js"></script>
   <script src="js/config.js"></script>
   <script src="js/export.js"></script>
   <script src="js/backup.js"></script>

@@ -8,6 +8,8 @@ var RH_PROYECTOS_KEY = "rh_proyectos";
 var RH_CONFIG_KEY = "rh_config";
 var RH_LAST_BACKUP_KEY = "rh_last_backup";
 var RH_BACKUP_REMINDER_DAYS = 7;
+var RH_PAPELERA_KEY = "rh_papelera";
+var RH_PAPELERA_DIAS = 30;
 
 // ---------- Configuración por defecto ----------
 //
@@ -44,7 +46,19 @@ var RH_DIAS_SEMANA = [
   { id: 6, label: "Sábado", corto: "Sáb" }
 ];
 
+// Orden de despliegue lunes -> domingo (RH_DIAS_SEMANA se mantiene indexado
+// por Date.getDay(), 0=domingo, así que este arreglo solo define el orden
+// visual de los checkboxes / tablas que muestren la semana completa).
+var RH_DIAS_SEMANA_ORDEN = [1, 2, 3, 4, 5, 6, 0];
+
 var RH_MESES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
+
+var RH_MESES_ABREV = [
+  "ene", "feb", "mar", "abr", "may", "jun",
+  "jul", "ago", "sep", "oct", "nov", "dic"
+];
+
+var RH_ORDINALES = ["Primera", "Segunda", "Tercera", "Cuarta", "Quinta", "Sexta"];

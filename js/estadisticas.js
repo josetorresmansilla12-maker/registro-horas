@@ -257,7 +257,9 @@ function renderStatsMonthWeeks() {
 
     var titleSpan = document.createElement("span");
     titleSpan.className = "week-group-title";
-    titleSpan.textContent = "Semana del " + rhFormatDateDisplay(g.weekStart) + " al " + rhFormatDateDisplay(g.weekEnd);
+    var ordinal = RH_ORDINALES[idx] || (idx + 1) + "ª";
+    titleSpan.textContent = rhFormatDateShort(g.weekStart) + " al " + rhFormatDateShort(g.weekEnd) +
+      " (" + ordinal + " semana)";
     summary.appendChild(titleSpan);
 
     var metaSpan = document.createElement("span");

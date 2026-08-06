@@ -43,12 +43,14 @@ function rhBuildRegistroRows(start, end) {
   ];
   var rows = [header];
   var dias = rhDaysBetweenInclusive(start, end);
+  var totalMin = 0;
 
   dias.forEach(function (iso) {
     var registro = rhGetRegistroByFecha(iso);
     var b1 = registro ? registro.bloque1 : { entrada: "", salida: "" };
     var b2 = registro ? registro.bloque2 : { entrada: "", salida: "" };
-    var totalHoras = registro ? rhMinutesToDecimal(rhRegistroMinutes(registro)) : 0;
+    var minutos = registro ? rhRegistroMinutes(registro) : 0;
+    totalMin += minutos;
     rows.push([
       rhFormatDateDisplay(iso),
       rhDayOfWeekLabel(iso, false),
@@ -56,11 +58,44 @@ function rhBuildRegistroRows(start, end) {
       b1.salida || "",
       b2.entrada || "",
       b2.salida || "",
-      totalHoras,
+      rhMinutesToDecimal(minutos),
       registro ? (registro.nota || "") : "",
       rhObservacionesParaFecha(iso)
     ]);
   });
+
+  rows.push(new Array(header.length).fill(""));
+  var totalRow = new Array(header.length).fill("");
+  totalRow[0] = "TOTAL DEL PERÍODO";
+  totalRow[6] = rhMinutesToDecimal(totalMin);
+  totalRow[7] = rhMinutesToHM(totalMin);
+  rows.push(totalRow);
+
+  return rows;
+}
+
+// Pestaña "Informe": tabla simple pensada para captura de pantalla al
+// rendir cuentas (día abreviado, fecha, horas trabajadas, nota y total).
+function rhBuildInformeRows(start, end) {
+  var header = ["Día", "Fecha", "Horas trabajadas", "Nota"];
+  var rows = [header];
+  var dias = rhDaysBetweenInclusive(start, end);
+  var totalMin = 0;
+
+  dias.forEach(function (iso) {
+    var registro = rhGetRegistroByFecha(iso);
+    var minutos = registro ? rhRegistroMinutes(registro) : 0;
+    totalMin += minutos;
+    rows.push([
+      rhDayOfWeekLabel(iso, true),
+      rhFormatDateDisplay(iso),
+      rhMinutesToDecimal(minutos),
+      registro ? (registro.nota || "") : ""
+    ]);
+  });
+
+  rows.push(["", "", "", ""]);
+  rows.push(["", "TOTAL DEL PERÍODO", rhMinutesToDecimal(totalMin), rhMinutesToHM(totalMin)]);
 
   return rows;
 }
@@ -98,6 +133,11 @@ exportConfirmBtn.addEventListener("click", function () {
     { wch: 14 }, { wch: 12 }, { wch: 32 }, { wch: 32 }
   ];
   XLSX.utils.book_append_sheet(wb, wsRegistro, "Registro de Horas");
+
+  var informeRows = rhBuildInformeRows(start, end);
+  var wsInforme = XLSX.utils.aoa_to_sheet(informeRows);
+  wsInforme["!cols"] = [{ wch: 8 }, { wch: 12 }, { wch: 16 }, { wch: 36 }];
+  XLSX.utils.book_append_sheet(wb, wsInforme, "Informe");
 
   if (exportIncluirProyectosInput.checked) {
     var proyectoRows = rhBuildProyectosRows(start, end);

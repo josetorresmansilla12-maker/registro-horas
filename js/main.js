@@ -4,6 +4,7 @@
 
 document.addEventListener("DOMContentLoaded", function () {
   rhEnhanceTimeInputs(document);
+  rhPapeleraPurgarVencidos();
   rhMarcajeResetForm();
   rhLicenciaResetForm();
   rhProyectoResetForm();

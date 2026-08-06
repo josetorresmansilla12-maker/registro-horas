@@ -60,8 +60,10 @@ function rhUpsertRegistro(registro) {
 }
 
 function rhDeleteRegistro(id) {
-  var list = rhLoadRegistros().filter(function (r) { return r.id !== id; });
-  rhSaveRegistros(list);
+  var list = rhLoadRegistros();
+  var item = list.find(function (r) { return r.id === id; });
+  if (item) rhPapeleraAgregar("registro", item);
+  rhSaveRegistros(list.filter(function (r) { return r.id !== id; }));
 }
 
 // ---------- Licencias / ausencias justificadas ----------
@@ -89,7 +91,10 @@ function rhUpsertLicencia(licencia) {
 }
 
 function rhDeleteLicencia(id) {
-  rhSaveLicencias(rhLoadLicencias().filter(function (l) { return l.id !== id; }));
+  var list = rhLoadLicencias();
+  var item = list.find(function (l) { return l.id === id; });
+  if (item) rhPapeleraAgregar("licencia", item);
+  rhSaveLicencias(list.filter(function (l) { return l.id !== id; }));
 }
 
 function rhLicenciaForDate(iso) {
@@ -135,7 +140,10 @@ function rhUpsertProyecto(proyecto) {
 }
 
 function rhDeleteProyecto(id) {
-  rhSaveProyectos(rhLoadProyectos().filter(function (p) { return p.id !== id; }));
+  var list = rhLoadProyectos();
+  var item = list.find(function (p) { return p.id === id; });
+  if (item) rhPapeleraAgregar("proyecto", item);
+  rhSaveProyectos(list.filter(function (p) { return p.id !== id; }));
 }
 
 // ---------- Configuración ----------
@@ -280,4 +288,83 @@ function rhMetaMensualAjustada(mesIso) {
   var config = rhLoadConfig();
   var range = rhMonthRange(mesIso);
   return rhMetaAjustadaEnRango(range.start, range.end, config.metaMensual);
+}
+
+// ---------- Papelera (registros/licencias/proyectos eliminados) ----------
+//
+// Nada se borra directo: rhDeleteRegistro/Licencia/Proyecto guardan una copia
+// acá antes de eliminar, para poder deshacer un borrado por error. Se
+// purgan solas pasados RH_PAPELERA_DIAS días.
+
+function rhLoadPapelera() {
+  return rhLoadList(RH_PAPELERA_KEY);
+}
+
+function rhSavePapelera(list) {
+  return rhSaveList(RH_PAPELERA_KEY, list);
+}
+
+function rhPapeleraAgregar(tipo, item) {
+  var list = rhLoadPapelera();
+  list.unshift({ id: rhUid(), tipo: tipo, item: item, eliminadoEn: Date.now() });
+  rhSavePapelera(list);
+}
+
+function rhPapeleraAgregarMuchos(tipo, items) {
+  if (!items || items.length === 0) return;
+  var list = rhLoadPapelera();
+  var nuevos = items.map(function (item) {
+    return { id: rhUid(), tipo: tipo, item: item, eliminadoEn: Date.now() };
+  });
+  rhSavePapelera(nuevos.concat(list));
+}
+
+// Elimina de la papelera lo que ya pasó su fecha de vencimiento. Se llama al
+// iniciar la app; devuelve cuántos se purgaron.
+function rhPapeleraPurgarVencidos() {
+  var limite = Date.now() - RH_PAPELERA_DIAS * 24 * 60 * 60 * 1000;
+  var list = rhLoadPapelera();
+  var vigentes = list.filter(function (e) { return e.eliminadoEn >= limite; });
+  if (vigentes.length !== list.length) rhSavePapelera(vigentes);
+  return list.length - vigentes.length;
+}
+
+function rhPapeleraVenceEn(entry) {
+  var vencePor = entry.eliminadoEn + RH_PAPELERA_DIAS * 24 * 60 * 60 * 1000;
+  var diasRestantes = Math.ceil((vencePor - Date.now()) / (24 * 60 * 60 * 1000));
+  return Math.max(0, diasRestantes);
+}
+
+// Un registro (jornada) es único por fecha: si ya existe uno para la fecha
+// del que se quiere restaurar, restaurar lo reemplazaría en silencio.
+function rhPapeleraTieneConflicto(entry) {
+  if (entry.tipo !== "registro") return false;
+  return !!rhGetRegistroByFecha(entry.item.fecha);
+}
+
+function rhPapeleraRestaurar(papelId) {
+  var list = rhLoadPapelera();
+  var entry = list.find(function (e) { return e.id === papelId; });
+  if (!entry) return false;
+
+  if (entry.tipo === "registro") {
+    var restaurado = Object.assign({}, entry.item);
+    delete restaurado.id; // rhUpsertRegistro asigna uno nuevo si hace falta
+    rhUpsertRegistro(restaurado);
+  } else if (entry.tipo === "licencia") {
+    rhUpsertLicencia(Object.assign({}, entry.item));
+  } else if (entry.tipo === "proyecto") {
+    rhUpsertProyecto(Object.assign({}, entry.item));
+  }
+
+  rhSavePapelera(list.filter(function (e) { return e.id !== papelId; }));
+  return true;
+}
+
+function rhPapeleraEliminarDefinitivo(papelId) {
+  rhSavePapelera(rhLoadPapelera().filter(function (e) { return e.id !== papelId; }));
+}
+
+function rhPapeleraVaciar() {
+  rhSavePapelera([]);
 }
