@@ -727,3 +727,52 @@ body {
     padding: 16px;
   }
 }
+
+/* ---------- Informe ---------- */
+
+.informe-presets {
+  flex-wrap: wrap;
+}
+
+.field-inline select {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #f7f9fd;
+  color: var(--color-text);
+}
+
+.informe-table-wrap {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+#informe-table tfoot th {
+  text-align: left;
+  padding: 12px;
+  border-top: 2px solid var(--color-border);
+  font-size: 0.92rem;
+}
+
+@media print {
+  .app-header,
+  .tabs,
+  .app-alerts,
+  #informe-periodo-section,
+  #informe-print-btn {
+    display: none !important;
+  }
+  .tab-panel.hidden {
+    display: none !important;
+  }
+  .form-section {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+  .informe-table-wrap {
+    max-height: none;
+    overflow: visible;
+  }
+}

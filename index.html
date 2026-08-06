@@ -29,6 +29,7 @@
     <button type="button" class="tab-btn" id="tab-estadisticas-btn" data-tab="estadisticas">Estadísticas</button>
     <button type="button" class="tab-btn" id="tab-licencias-btn" data-tab="licencias">Licencias y Feriados</button>
     <button type="button" class="tab-btn" id="tab-proyectos-btn" data-tab="proyectos">Funciones y Proyectos</button>
+    <button type="button" class="tab-btn" id="tab-informe-btn" data-tab="informe">Informe</button>
     <button type="button" class="tab-btn" id="tab-config-btn" data-tab="config">Configuración</button>
   </nav>
 
@@ -288,6 +289,77 @@
     </section>
 
     <!-- ===================== TAB: CONFIGURACIÓN ===================== -->
+    <!-- ===================== TAB: INFORME ===================== -->
+    <section id="tab-informe" class="tab-panel hidden">
+      <section class="form-section" id="informe-periodo-section">
+        <h2>Período a mostrar</h2>
+        <div class="field-row">
+          <div class="field">
+            <label for="informe-inicio">Desde</label>
+            <input type="date" id="informe-inicio" />
+          </div>
+          <div class="field">
+            <label for="informe-fin">Hasta</label>
+            <input type="date" id="informe-fin" />
+          </div>
+        </div>
+        <div class="form-actions informe-presets">
+          <button type="button" class="btn btn-secondary btn-small" id="informe-preset-1m">Último mes</button>
+          <button type="button" class="btn btn-secondary btn-small" id="informe-preset-2m">Últimos 2 meses</button>
+          <button type="button" class="btn btn-secondary btn-small" id="informe-preset-3m">Últimos 3 meses</button>
+        </div>
+        <div class="field-inline">
+          <label for="informe-anio" class="label-hint">o ver el año completo</label>
+          <select id="informe-anio"></select>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Resumen del mes actual</h2>
+        <p class="label-hint">Meta ajustada por licencias/feriados y horas trabajadas del mes en curso — sin balance, solo para reportar.</p>
+        <div class="stats-cards">
+          <div class="stat-card">
+            <span class="stat-label">Meta del mes</span>
+            <span class="stat-value" id="informe-meta-mes-value">0h 00m</span>
+            <span class="stat-sub" id="informe-meta-mes-sub"></span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Horas trabajadas</span>
+            <span class="stat-value" id="informe-trabajado-mes-value">0h 00m</span>
+            <span class="stat-sub" id="informe-trabajado-mes-sub"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="list-header">
+          <h2>Detalle del período</h2>
+          <button type="button" class="btn btn-secondary btn-small" id="informe-print-btn">🖨️ Imprimir / PDF</button>
+        </div>
+        <p class="empty-state hidden" id="informe-empty-state">Selecciona un período con al menos un día.</p>
+        <div class="table-wrap informe-table-wrap" id="informe-table-wrap">
+          <table class="data-table" id="informe-table">
+            <thead>
+              <tr>
+                <th>Día</th>
+                <th>Fecha</th>
+                <th>H. mañana</th>
+                <th>H. tarde</th>
+                <th>Total día</th>
+              </tr>
+            </thead>
+            <tbody id="informe-table-body"></tbody>
+            <tfoot>
+              <tr>
+                <th colspan="4">Total del período</th>
+                <th id="informe-total-periodo">0h 00m</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </section>
+
     <section id="tab-config" class="tab-panel hidden">
       <section class="form-section">
         <h2>Metas de horas</h2>
@@ -447,6 +519,7 @@
   <script src="js/licencias.js"></script>
   <script src="js/proyectos.js"></script>
   <script src="js/papelera.js"></script>
+  <script src="js/informe.js"></script>
   <script src="js/config.js"></script>
   <script src="js/export.js"></script>
   <script src="js/backup.js"></script>
