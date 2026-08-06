@@ -575,6 +575,14 @@ body {
   accent-color: var(--color-primary);
 }
 
+.danger-zone {
+  border: 1px solid #f0c3bd;
+}
+
+.danger-zone h2 {
+  color: var(--color-danger-dark);
+}
+
 /* ---------- Acordeón de semanas (Estadísticas) ---------- */
 
 .week-group {

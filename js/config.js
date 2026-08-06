@@ -69,3 +69,37 @@ configForm.addEventListener("submit", function (e) {
   rhSaveConfig(config);
   rhShowAlert("Configuración guardada.", "success");
 });
+
+// ---------- Zona de peligro: eliminar todos los datos ----------
+
+rhEl("delete-all-data-btn").addEventListener("click", function () {
+  var totalRegistros = rhLoadRegistros().length;
+  var totalLicencias = rhLoadLicencias().length;
+  var totalProyectos = rhLoadProyectos().length;
+
+  if (totalRegistros === 0 && totalLicencias === 0 && totalProyectos === 0) {
+    rhShowAlert("No hay datos guardados para eliminar.", "success");
+    return;
+  }
+
+  var mensaje = "Esto eliminará PERMANENTEMENTE " + totalRegistros + " jornada(s), " +
+    totalLicencias + " licencia(s)/feriado(s) y " + totalProyectos + " función(es)/proyecto(s) " +
+    "guardados en este dispositivo. Tu configuración no se modifica.\n\n" +
+    "Esta acción no se puede deshacer. Si no has hecho un respaldo (.json) reciente, cancela y " +
+    "hazlo primero.\n\n" +
+    "¿Estás seguro de que quieres eliminar todos los datos?";
+
+  if (!confirm(mensaje)) return;
+
+  rhSaveRegistros([]);
+  rhSaveLicencias([]);
+  rhSaveProyectos([]);
+
+  renderMarcajeTable();
+  rhMarcajeLoadFecha(marcajeFechaInput.value || rhTodayISO());
+  renderEstadisticas();
+  renderLicencias();
+  renderProyectos();
+
+  rhShowAlert("Todos los datos fueron eliminados.", "success");
+});
