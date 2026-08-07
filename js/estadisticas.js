@@ -168,9 +168,12 @@ function rhBuildStatsDayRow(iso, config, metaDiaria, today) {
   var esLaboral = config.diasLaborales.indexOf(d.getDay()) !== -1;
   var licencia = rhLicenciaForDate(iso);
 
-  if (!esLaboral) {
+  if (registro && registro.estado === RH_ESTADO_NO_CONTRATADO) {
+    pill.textContent = "Aún no contratado";
+    pill.classList.add("sin-contrato");
+  } else if (!esLaboral) {
     pill.textContent = "No laboral";
-    pill.classList.add("futuro");
+    pill.classList.add("no-laboral");
   } else if (rhCompareISO(iso, today) > 0) {
     pill.textContent = "Futuro";
     pill.classList.add("futuro");
@@ -184,8 +187,10 @@ function rhBuildStatsDayRow(iso, config, metaDiaria, today) {
     pill.textContent = "Cumplido";
     pill.classList.add("ok");
   } else if (minutes > 0) {
-    pill.textContent = "Parcial";
-    pill.classList.add("pendiente");
+    // Trabajó menos que la meta, pero según las horas que le indicaron: se
+    // considera cumplido, no un incumplimiento del trabajador.
+    pill.textContent = "Cumplida";
+    pill.classList.add("ok");
   } else {
     pill.textContent = "Sin registro";
     pill.classList.add("pendiente");

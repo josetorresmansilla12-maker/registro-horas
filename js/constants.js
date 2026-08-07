@@ -11,10 +11,13 @@ var RH_BACKUP_REMINDER_DAYS = 7;
 var RH_PAPELERA_KEY = "rh_papelera";
 var RH_PAPELERA_DIAS = 30;
 
-// Estado especial de una jornada: la oficina pidió no asistir ese día. No
-// cuenta como incumplimiento (no resta horas), pero deja constancia de que
-// la ausencia no fue por decisión del trabajador.
+// Estados especiales de una jornada (día sin horas trabajadas que igual NO
+// cuenta como incumplimiento ni afecta el cálculo de horas):
+//  - no_convocado: la oficina pidió no asistir ese día.
+//  - no_contratado: día previo al inicio del contrato, o período sin contrato
+//    (aún no trabajabas / no te habían recontratado).
 var RH_ESTADO_NO_CONVOCADO = "no_convocado";
+var RH_ESTADO_NO_CONTRATADO = "no_contratado";
 
 // ---------- Configuración por defecto ----------
 //

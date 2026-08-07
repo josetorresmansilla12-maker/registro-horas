@@ -122,7 +122,7 @@ function rhLicenciaAjustaMeta(licencia) {
 function rhDiaAjustaMeta(iso) {
   var licencia = rhLicenciaForDate(iso);
   if (licencia && rhLicenciaAjustaMeta(licencia)) return true;
-  return rhRegistroEsNoConvocado(rhGetRegistroByFecha(iso));
+  return rhRegistroExcluyeMeta(rhGetRegistroByFecha(iso));
 }
 
 // ---------- Proyectos / funciones asignadas ----------

@@ -128,9 +128,10 @@ function rhMarcajeLoadFecha(fecha) {
   if (existente) {
     marcajeIdInput.value = existente.id;
     marcajeNota.value = existente.nota || "";
-    if (rhRegistroEsNoConvocado(existente)) {
+    var estadoLabel = rhRegistroEstadoLabel(existente);
+    if (estadoLabel) {
       rhMarcajeSetJornadas([]);
-      marcajeFormTitle.textContent = "Editar jornada — " + rhFormatDateDisplay(fecha) + " (No convocado)";
+      marcajeFormTitle.textContent = "Editar jornada — " + rhFormatDateDisplay(fecha) + " (" + estadoLabel + ")";
     } else {
       rhMarcajeSetJornadas(rhRegistroBloques(existente));
       marcajeFormTitle.textContent = "Editar jornada — " + rhFormatDateDisplay(fecha);
@@ -161,15 +162,14 @@ rhEl("marcaje-marcar-feriado-btn").addEventListener("click", function () {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
-// "Me pidieron no asistir": marca el día como No convocado en un clic. No es
-// una ausencia del trabajador, así que no resta horas al balance.
-rhEl("marcaje-no-convocado-btn").addEventListener("click", function () {
+// Marca el día seleccionado con un estado especial (sin horas trabajadas) que
+// no cuenta como incumplimiento ni afecta el cálculo: "No convocado" o
+// "Aún no contratado".
+function rhMarcajeMarcarEstado(estado, label, descripcion) {
   var fecha = marcajeFechaInput.value || rhTodayISO();
   var existente = rhGetRegistroByFecha(fecha);
 
-  var aviso = "¿Marcar el " + rhFormatDateDisplay(fecha) + ' como "No convocado"?\n\n' +
-    "Se usa cuando la oficina te pide no asistir: ese día no cuenta como " +
-    "incumplimiento (no resta horas) y aparecerá como \"No convocado\" en el historial y en el informe.";
+  var aviso = "¿Marcar el " + rhFormatDateDisplay(fecha) + ' como "' + label + '"?\n\n' + descripcion;
   if (existente && rhRegistroMinutes(existente) > 0) {
     aviso += "\n\nOJO: este día ya tiene horas registradas y quedarán reemplazadas.";
   }
@@ -180,12 +180,26 @@ rhEl("marcaje-no-convocado-btn").addEventListener("click", function () {
     fecha: fecha,
     bloques: [],
     nota: marcajeNota.value.trim(),
-    estado: RH_ESTADO_NO_CONVOCADO
+    estado: estado
   });
-  rhShowAlert("El " + rhFormatDateDisplay(fecha) + " quedó marcado como No convocado.", "success");
+  rhShowAlert("El " + rhFormatDateDisplay(fecha) + " quedó marcado como " + label + ".", "success");
   rhMarcajeMesActual = rhMonthRange(fecha).start;
   rhMarcajeResetForm();
   renderMarcajeTable();
+}
+
+// "No me convocaron": la oficina pidió no asistir ese día.
+rhEl("marcaje-no-convocado-btn").addEventListener("click", function () {
+  rhMarcajeMarcarEstado(RH_ESTADO_NO_CONVOCADO, "No convocado",
+    "Se usa cuando la oficina te pide no asistir: ese día no cuenta como " +
+    "incumplimiento (no resta horas) y aparecerá como \"No convocado\" en el historial y en el informe.");
+});
+
+// "Aún no contratado": días previos al inicio del contrato o períodos sin él.
+rhEl("marcaje-no-contratado-btn").addEventListener("click", function () {
+  rhMarcajeMarcarEstado(RH_ESTADO_NO_CONTRATADO, "Aún no contratado",
+    "Se usa para los días previos al inicio de tu contrato (o un período sin " +
+    "contrato): no cuentan como falta ni afectan el cálculo de horas.");
 });
 
 function rhMarcajeResetForm() {

@@ -140,6 +140,21 @@ function rhRegistroEsNoConvocado(registro) {
   return !!(registro && registro.estado === RH_ESTADO_NO_CONVOCADO);
 }
 
+// Etiqueta legible del estado especial de un día sin jornada trabajada
+// (la oficina no lo convocó, o aún no estabas contratado). "" si es un día
+// normal de trabajo.
+function rhRegistroEstadoLabel(registro) {
+  if (!registro) return "";
+  if (registro.estado === RH_ESTADO_NO_CONVOCADO) return "No convocado";
+  if (registro.estado === RH_ESTADO_NO_CONTRATADO) return "Aún no contratado";
+  return "";
+}
+
+// Un día con estado especial no cuenta para la meta ni resta al balance.
+function rhRegistroExcluyeMeta(registro) {
+  return !!rhRegistroEstadoLabel(registro);
+}
+
 function rhRegistroMinutes(registro) {
   if (!registro) return 0;
   return rhRegistroBloques(registro).reduce(function (sum, b) {
@@ -169,7 +184,8 @@ function rhFormatBloque12(block) {
 // "No convocado" si la oficina pidió no asistir, la lista de horarios si hay
 // jornadas, o "—" si el día no tiene marcaje.
 function rhFormatJornadasRegistro(registro) {
-  if (rhRegistroEsNoConvocado(registro)) return "No convocado";
+  var estadoLabel = rhRegistroEstadoLabel(registro);
+  if (estadoLabel) return estadoLabel;
   var bloques = rhRegistroBloques(registro).filter(function (b) {
     return b && b.entrada && b.salida;
   });

@@ -82,8 +82,9 @@ function rhBuildInformeRows(start, end) {
     var minutos = rhRegistroMinutes(registro);
     totalMin += minutos;
     var nota = registro ? (registro.nota || "") : "";
-    if (rhRegistroEsNoConvocado(registro)) {
-      nota = nota ? "No convocado · " + nota : "No convocado";
+    var estadoLabel = rhRegistroEstadoLabel(registro);
+    if (estadoLabel) {
+      nota = nota ? estadoLabel + " · " + nota : estadoLabel;
     }
     rows.push([
       rhDayOfWeekLabel(iso, true),

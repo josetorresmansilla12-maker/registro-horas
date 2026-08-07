@@ -540,6 +540,16 @@ body {
   color: var(--color-text-muted);
 }
 
+.status-pill.no-laboral {
+  background: #fbe4e2;
+  color: var(--color-danger-dark);
+}
+
+.status-pill.sin-contrato {
+  background: var(--color-tint);
+  color: var(--color-text-muted);
+}
+
 /* ---------- Configuración ---------- */
 
 #config-form {
