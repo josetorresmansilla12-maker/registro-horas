@@ -548,11 +548,67 @@ body {
 .hero-ritmo {
   background: var(--color-tint);
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   font-size: 0.9rem;
-  font-weight: 600;
   color: var(--color-primary-dark);
+}
+
+.hero-ritmo-ok {
+  display: block;
+  font-weight: 700;
   text-align: center;
+}
+
+.hero-ritmo-title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.hero-ritmo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-ritmo-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 3px solid var(--color-border);
+}
+
+.hero-ritmo-item strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.hero-ritmo-item em {
+  font-style: normal;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.hero-ritmo-item.ritmo-semana {
+  border-left-color: var(--color-accent);
+}
+
+.hero-ritmo-item.ritmo-semana strong {
+  color: var(--color-primary-dark);
+}
+
+.hero-ritmo-item.ritmo-dia {
+  border-left-color: var(--color-success);
+}
+
+.hero-ritmo-item.ritmo-dia strong {
+  color: var(--color-success);
 }
 
 .balance-value {

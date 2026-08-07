@@ -16,16 +16,25 @@ function rhInformeSetRango(inicio, fin) {
   renderInforme();
 }
 
-function rhInformeAplicarMeses(n) {
+// Rango por defecto: el mes en curso completo (ej. 1 al 31 de agosto), para
+// generar un informe rápido sin tener que elegir las fechas cada vez.
+function rhInformeMesActual() {
+  var r = rhMonthRange(rhTodayISO());
+  rhInformeSetRango(r.start, r.end);
+}
+
+// Presets por cantidad de días hacia atrás, contando hoy (últimos N días).
+function rhInformeAplicarDias(n) {
   var hoy = rhTodayISO();
   var d = rhParseISO(hoy);
-  d.setMonth(d.getMonth() - n);
+  d.setDate(d.getDate() - (n - 1));
   rhInformeSetRango(rhDateToISO(d), hoy);
 }
 
-rhEl("informe-preset-1m").addEventListener("click", function () { rhInformeAplicarMeses(1); });
-rhEl("informe-preset-2m").addEventListener("click", function () { rhInformeAplicarMeses(2); });
-rhEl("informe-preset-3m").addEventListener("click", function () { rhInformeAplicarMeses(3); });
+rhEl("informe-preset-mes").addEventListener("click", rhInformeMesActual);
+rhEl("informe-preset-30d").addEventListener("click", function () { rhInformeAplicarDias(30); });
+rhEl("informe-preset-60d").addEventListener("click", function () { rhInformeAplicarDias(60); });
+rhEl("informe-preset-90d").addEventListener("click", function () { rhInformeAplicarDias(90); });
 
 function rhInformePoblarAnios() {
   var hoy = rhTodayISO();
@@ -131,4 +140,4 @@ function renderInforme() {
 }
 
 rhInformePoblarAnios();
-rhInformeAplicarMeses(1);
+rhInformeMesActual();

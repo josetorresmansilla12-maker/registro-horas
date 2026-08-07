@@ -109,16 +109,56 @@ function renderEstadisticas() {
   var faltanMin = Math.max(0, metaMensualAjustadaMin - workedMonthMin);
   rhEl("stats-hero-faltan").textContent = rhMinutesToHM(faltanMin);
 
-  // Ritmo semanal necesario para cumplir lo que falta antes de fin de mes.
+  // Ritmo necesario para cumplir lo que falta antes de fin de mes (por semana
+  // y por día hábil), recalculado según lo que ya queda del mes.
   var ritmoEl = rhEl("stats-hero-ritmo");
+  rhClear(ritmoEl);
   if (faltanMin <= 0) {
-    ritmoEl.textContent = "🎉 Ya cumpliste la cuota de horas de " + mesNombre.toLowerCase() + ".";
+    var okMsg = document.createElement("span");
+    okMsg.className = "hero-ritmo-ok";
+    okMsg.textContent = "🎉 Ya cumpliste la cuota de horas de " + mesNombre.toLowerCase() + ".";
+    ritmoEl.appendChild(okMsg);
   } else {
     var diasRestantesMes = rhDaysBetweenInclusive(today, monthRange.end).length;
     var semanasRestantes = Math.max(1, Math.ceil(diasRestantesMes / 7));
-    var ritmoMin = faltanMin / semanasRestantes;
-    ritmoEl.textContent = "Para cumplir lo que falta necesitas trabajar ~" + rhMinutesToHM(ritmoMin) +
-      " por semana (quedan " + semanasRestantes + (semanasRestantes === 1 ? " semana" : " semanas") + " en el mes).";
+    var ritmoSemanaMin = faltanMin / semanasRestantes;
+
+    // Días hábiles que quedan: laborales según la config y sin contar los que
+    // ya están excluidos de la meta (feriados, licencias, no convocado…).
+    var diasHabilesRestantes = 0;
+    rhDaysBetweenInclusive(today, monthRange.end).forEach(function (iso) {
+      var dd = rhParseISO(iso);
+      if (config.diasLaborales.indexOf(dd.getDay()) === -1) return;
+      if (rhDiaAjustaMeta(iso)) return;
+      diasHabilesRestantes++;
+    });
+
+    var titulo = document.createElement("span");
+    titulo.className = "hero-ritmo-title";
+    titulo.textContent = "Para cumplir lo que falta:";
+    ritmoEl.appendChild(titulo);
+
+    var ul = document.createElement("ul");
+    ul.className = "hero-ritmo-list";
+
+    var liSemana = document.createElement("li");
+    liSemana.className = "hero-ritmo-item ritmo-semana";
+    liSemana.innerHTML = "<strong>~" + rhMinutesToHM(ritmoSemanaMin) + "</strong> por semana " +
+      "<em>(quedan " + semanasRestantes + (semanasRestantes === 1 ? " semana" : " semanas") + ")</em>";
+    ul.appendChild(liSemana);
+
+    var liDia = document.createElement("li");
+    liDia.className = "hero-ritmo-item ritmo-dia";
+    if (diasHabilesRestantes > 0) {
+      var ritmoDiaMin = faltanMin / diasHabilesRestantes;
+      liDia.innerHTML = "<strong>~" + rhMinutesToHM(ritmoDiaMin) + "</strong> por día " +
+        "<em>(quedan " + diasHabilesRestantes + (diasHabilesRestantes === 1 ? " día hábil" : " días hábiles") + ")</em>";
+    } else {
+      liDia.innerHTML = "<em>No quedan días hábiles en el mes.</em>";
+    }
+    ul.appendChild(liDia);
+
+    ritmoEl.appendChild(ul);
   }
 
   var metaMensualConfigMin = rhHoursToMinutes(config.metaMensual);
@@ -145,7 +185,7 @@ function renderEstadisticas() {
   var promedioMin = diasConHoras.length > 0 ? workedMonthMin / diasConHoras.length : 0;
   rhEl("stats-promedio-value").textContent = rhMinutesToHM(promedioMin);
   rhEl("stats-promedio-sub").textContent = diasConHoras.length > 0
-    ? "Sobre " + diasConHoras.length + " día(s) con marcaje"
+    ? ""
     : "Sin jornadas registradas este mes";
 
   // ---- Feriados y licencias del mes ----
