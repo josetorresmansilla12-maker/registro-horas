@@ -108,43 +108,38 @@
 
     <!-- ===================== TAB: ESTADÍSTICAS ===================== -->
     <section id="tab-estadisticas" class="tab-panel hidden">
+      <!-- Gráfico principal: cuota mensual (horas + porcentaje) -->
+      <section class="stats-cards">
+        <div class="stat-card stat-hero">
+          <span class="stat-label">Cuota mensual — <span id="stats-hero-mes-nombre">—</span></span>
+          <div class="stat-hero-body">
+            <div class="gauge" id="stats-gauge-mes"></div>
+            <div class="stat-hero-figures">
+              <div class="hero-figure">
+                <span>Debo cumplir</span>
+                <strong id="stats-hero-meta">0h 00m</strong>
+              </div>
+              <div class="hero-figure hero-figure-done">
+                <span>Llevo cumplidas</span>
+                <strong id="stats-hero-trabajado">0h 00m</strong>
+              </div>
+              <div class="hero-figure">
+                <span>Me faltan</span>
+                <strong id="stats-hero-faltan">0h 00m</strong>
+              </div>
+            </div>
+          </div>
+          <span class="hero-ritmo" id="stats-hero-ritmo"></span>
+        </div>
+      </section>
+
       <section class="stats-cards">
         <div class="stat-card">
-          <span class="stat-label">Semana actual</span>
+          <span class="stat-label">Semana actual <span class="label-hint">(referencia)</span></span>
           <div class="gauge" id="stats-gauge-semana"></div>
           <span class="stat-value" id="stats-semana-value">0h / 0h</span>
           <span class="stat-sub" id="stats-semana-sub"></span>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">Mes actual</span>
-          <div class="gauge" id="stats-gauge-mes"></div>
-          <span class="stat-value" id="stats-mes-value">0h / 0h</span>
-          <span class="stat-sub" id="stats-mes-sub"></span>
-        </div>
-      </section>
-
-      <section class="stats-cards">
-        <div class="stat-card balance-card" id="stats-balance-semana-card">
-          <span class="stat-label">Balance semanal</span>
-          <span class="balance-value" id="stats-balance-semana-value">0h 00m</span>
-          <span class="balance-tag" id="stats-balance-semana-tag">—</span>
-          <span class="stat-sub" id="stats-balance-semana-sub"></span>
-        </div>
-        <div class="stat-card balance-card" id="stats-balance-mes-card">
-          <span class="stat-label">Balance mensual</span>
-          <span class="balance-value" id="stats-balance-mes-value">0h 00m</span>
-          <span class="balance-tag" id="stats-balance-mes-tag">—</span>
-          <span class="stat-sub" id="stats-balance-mes-sub"></span>
-        </div>
-        <div class="stat-card balance-card" id="stats-balance-card">
-          <span class="stat-label">Balance acumulado <span class="label-hint">(general)</span></span>
-          <span class="balance-value" id="stats-balance-value">0h 00m</span>
-          <span class="balance-tag" id="stats-balance-tag">—</span>
-          <span class="stat-sub" id="stats-balance-sub"></span>
-        </div>
-      </section>
-
-      <section class="stats-cards">
         <div class="stat-card">
           <span class="stat-label">Promedio horas/día <span class="label-hint">(mes actual)</span></span>
           <span class="stat-value" id="stats-promedio-value">0h 00m</span>
@@ -154,6 +149,31 @@
           <span class="stat-label">Feriados y licencias <span class="label-hint">(mes actual)</span></span>
           <span class="stat-value" id="stats-especiales-value">0</span>
           <span class="stat-sub" id="stats-especiales-sub"></span>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Balance de horas <span class="label-hint">(solo para ti, no se informa)</span></h2>
+        <p class="label-hint">Trabajas a honorario: cumplir menos horas en una semana no es un problema. Esto es solo una referencia personal.</p>
+        <div class="stats-cards">
+          <div class="stat-card balance-card" id="stats-balance-semana-card">
+            <span class="stat-label">Balance semanal</span>
+            <span class="balance-value" id="stats-balance-semana-value">0h 00m</span>
+            <span class="balance-tag" id="stats-balance-semana-tag">—</span>
+            <span class="stat-sub" id="stats-balance-semana-sub"></span>
+          </div>
+          <div class="stat-card balance-card" id="stats-balance-mes-card">
+            <span class="stat-label">Balance mensual</span>
+            <span class="balance-value" id="stats-balance-mes-value">0h 00m</span>
+            <span class="balance-tag" id="stats-balance-mes-tag">—</span>
+            <span class="stat-sub" id="stats-balance-mes-sub"></span>
+          </div>
+          <div class="stat-card balance-card" id="stats-balance-card">
+            <span class="stat-label">Balance acumulado <span class="label-hint">(general)</span></span>
+            <span class="balance-value" id="stats-balance-value">0h 00m</span>
+            <span class="balance-tag" id="stats-balance-tag">—</span>
+            <span class="stat-sub" id="stats-balance-sub"></span>
+          </div>
         </div>
       </section>
 

@@ -95,20 +95,37 @@ function renderEstadisticas() {
   if (metaSemanalAjustadaMin < metaSemanalConfigMin - 1) subSemana += " · meta ajustada por licencias";
   rhEl("stats-semana-sub").textContent = subSemana;
 
-  // ---- Mes actual ----
+  // ---- Cuota mensual (gráfico principal: horas + porcentaje) ----
   var monthRange = rhMonthRange(today);
+  var mesNombre = RH_MESES[rhParseISO(today).getMonth()];
   var workedMonthMin = rhWorkedMinutesInRange(monthRange.start, monthRange.end);
   var metaMensualAjustadaMin = rhMetaMensualAjustada(today);
   var pctMes = metaMensualAjustadaMin > 0 ? (workedMonthMin / metaMensualAjustadaMin) * 100 : 0;
   rhRenderGauge(rhEl("stats-gauge-mes"), pctMes);
-  rhEl("stats-mes-value").textContent = rhMinutesToHM(workedMonthMin) + " / " + rhMinutesToHM(metaMensualAjustadaMin);
+
+  rhEl("stats-hero-mes-nombre").textContent = mesNombre + " " + rhParseISO(today).getFullYear();
+  rhEl("stats-hero-meta").textContent = rhMinutesToHM(metaMensualAjustadaMin);
+  rhEl("stats-hero-trabajado").textContent = rhMinutesToHM(workedMonthMin);
+  var faltanMin = Math.max(0, metaMensualAjustadaMin - workedMonthMin);
+  rhEl("stats-hero-faltan").textContent = rhMinutesToHM(faltanMin);
+
+  // Ritmo semanal necesario para cumplir lo que falta antes de fin de mes.
+  var ritmoEl = rhEl("stats-hero-ritmo");
+  if (faltanMin <= 0) {
+    ritmoEl.textContent = "🎉 Ya cumpliste la cuota de horas de " + mesNombre.toLowerCase() + ".";
+  } else {
+    var diasRestantesMes = rhDaysBetweenInclusive(today, monthRange.end).length;
+    var semanasRestantes = Math.max(1, Math.ceil(diasRestantesMes / 7));
+    var ritmoMin = faltanMin / semanasRestantes;
+    ritmoEl.textContent = "Para cumplir lo que falta necesitas trabajar ~" + rhMinutesToHM(ritmoMin) +
+      " por semana (quedan " + semanasRestantes + (semanasRestantes === 1 ? " semana" : " semanas") + " en el mes).";
+  }
 
   var metaMensualConfigMin = rhHoursToMinutes(config.metaMensual);
-  var subMes = RH_MESES[rhParseISO(today).getMonth()] + " " + rhParseISO(today).getFullYear();
+  var subMes = mesNombre + " " + rhParseISO(today).getFullYear();
   if (metaMensualAjustadaMin < metaMensualConfigMin - 1) {
     subMes += " · Meta ajustada por licencias (meta original: " + rhMinutesToHM(metaMensualConfigMin) + ")";
   }
-  rhEl("stats-mes-sub").textContent = subMes;
 
   // ---- Balance semanal (para cobrar/compensar dentro de la misma semana) ----
   var balanceSemanaMin = workedWeekMin - metaSemanalAjustadaMin;
@@ -183,13 +200,11 @@ function rhBuildStatsDayRow(iso, config, metaDiaria, today) {
   } else if (rhRegistroEsNoConvocado(registro)) {
     pill.textContent = "No convocado";
     pill.classList.add("licencia");
-  } else if (minutes >= metaDiaria - 1) {
-    pill.textContent = "Cumplido";
-    pill.classList.add("ok");
   } else if (minutes > 0) {
-    // Trabajó menos que la meta, pero según las horas que le indicaron: se
-    // considera cumplido, no un incumplimiento del trabajador.
-    pill.textContent = "Cumplida";
+    // Cualquier día trabajado cuenta como cumplido, sin importar la cantidad
+    // de horas: se desempeñaron funciones según lo indicado, no es un
+    // incumplimiento del trabajador.
+    pill.textContent = "Cumplido";
     pill.classList.add("ok");
   } else {
     pill.textContent = "Sin registro";
