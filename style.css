@@ -429,6 +429,11 @@ body {
   color: var(--color-text-muted);
 }
 
+.jornadas-cell {
+  white-space: normal;
+  min-width: 150px;
+}
+
 /* ---------- Estadísticas ---------- */
 
 .stats-cards {
@@ -728,7 +733,55 @@ body {
   }
 }
 
-/* ---------- Informe ---------- */
+/* ---------- Marcaje: acciones rápidas ---------- */
+
+.marcaje-quick-actions {
+  gap: 8px;
+}
+
+/* ---------- Informe (identidad morada, Universidad de Magallanes) ---------- */
+
+#tab-informe {
+  --informe-morado: #5c2d82;
+  --informe-morado-oscuro: #3f1d5c;
+  --informe-morado-suave: #efe7f6;
+  --informe-morado-borde: #d9c7ea;
+}
+
+#tab-informe .form-section {
+  border-top: 4px solid var(--informe-morado);
+}
+
+#tab-informe .form-section h2 {
+  color: var(--informe-morado-oscuro);
+}
+
+#tab-informe .stat-value {
+  color: var(--informe-morado-oscuro);
+}
+
+#tab-informe .btn-secondary {
+  background: var(--informe-morado-suave);
+  color: var(--informe-morado-oscuro);
+}
+
+#tab-informe .btn-secondary:hover {
+  background: #e3d3f0;
+}
+
+#tab-informe #informe-table thead th {
+  color: var(--informe-morado);
+  border-bottom-color: var(--informe-morado-borde);
+}
+
+#tab-informe #informe-table tbody tr:hover {
+  background: var(--informe-morado-suave);
+}
+
+#tab-informe #informe-table tfoot th {
+  color: var(--informe-morado-oscuro);
+  border-top-color: var(--informe-morado);
+}
 
 .informe-presets {
   flex-wrap: wrap;
@@ -774,5 +827,11 @@ body {
   .informe-table-wrap {
     max-height: none;
     overflow: visible;
+  }
+  #tab-informe .form-section {
+    border: 1px solid #ddd;
+    border-top: 4px solid var(--informe-morado);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

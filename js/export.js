@@ -35,9 +35,7 @@ function rhObservacionesParaFecha(iso) {
 
 function rhBuildRegistroRows(start, end) {
   var header = [
-    "Fecha", "Día de la semana",
-    "Entrada Bloque 1", "Salida Bloque 1",
-    "Entrada Bloque 2", "Salida Bloque 2",
+    "Fecha", "Día de la semana", "Jornadas (horarios)",
     "Total Horas Trabajadas", "Ubicación / Resumen de Actividad",
     "Observaciones / Licencias"
   ];
@@ -47,17 +45,14 @@ function rhBuildRegistroRows(start, end) {
 
   dias.forEach(function (iso) {
     var registro = rhGetRegistroByFecha(iso);
-    var b1 = registro ? registro.bloque1 : { entrada: "", salida: "" };
-    var b2 = registro ? registro.bloque2 : { entrada: "", salida: "" };
-    var minutos = registro ? rhRegistroMinutes(registro) : 0;
+    var minutos = rhRegistroMinutes(registro);
     totalMin += minutos;
+    var jornadas = registro ? rhFormatJornadasRegistro(registro) : "";
+    if (jornadas === "—") jornadas = "";
     rows.push([
       rhFormatDateDisplay(iso),
       rhDayOfWeekLabel(iso, false),
-      b1.entrada || "",
-      b1.salida || "",
-      b2.entrada || "",
-      b2.salida || "",
+      jornadas,
       rhMinutesToDecimal(minutos),
       registro ? (registro.nota || "") : "",
       rhObservacionesParaFecha(iso)
@@ -67,8 +62,8 @@ function rhBuildRegistroRows(start, end) {
   rows.push(new Array(header.length).fill(""));
   var totalRow = new Array(header.length).fill("");
   totalRow[0] = "TOTAL DEL PERÍODO";
-  totalRow[6] = rhMinutesToDecimal(totalMin);
-  totalRow[7] = rhMinutesToHM(totalMin);
+  totalRow[3] = rhMinutesToDecimal(totalMin);
+  totalRow[4] = rhMinutesToHM(totalMin);
   rows.push(totalRow);
 
   return rows;
@@ -84,13 +79,17 @@ function rhBuildInformeRows(start, end) {
 
   dias.forEach(function (iso) {
     var registro = rhGetRegistroByFecha(iso);
-    var minutos = registro ? rhRegistroMinutes(registro) : 0;
+    var minutos = rhRegistroMinutes(registro);
     totalMin += minutos;
+    var nota = registro ? (registro.nota || "") : "";
+    if (rhRegistroEsNoConvocado(registro)) {
+      nota = nota ? "No convocado · " + nota : "No convocado";
+    }
     rows.push([
       rhDayOfWeekLabel(iso, true),
       rhFormatDateDisplay(iso),
       rhMinutesToDecimal(minutos),
-      registro ? (registro.nota || "") : ""
+      nota
     ]);
   });
 
@@ -129,8 +128,7 @@ exportConfirmBtn.addEventListener("click", function () {
   var registroRows = rhBuildRegistroRows(start, end);
   var wsRegistro = XLSX.utils.aoa_to_sheet(registroRows);
   wsRegistro["!cols"] = [
-    { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
-    { wch: 14 }, { wch: 12 }, { wch: 32 }, { wch: 32 }
+    { wch: 12 }, { wch: 14 }, { wch: 34 }, { wch: 14 }, { wch: 32 }, { wch: 32 }
   ];
   XLSX.utils.book_append_sheet(wb, wsRegistro, "Registro de Horas");
 

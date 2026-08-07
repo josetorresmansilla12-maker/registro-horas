@@ -6,13 +6,19 @@ navegador donde la abras (o del teléfono, si se instala como PWA).
 
 ## Funciones
 
-- **Marcaje**: hasta 2 bloques de horario por día, nota/bitácora, autocompletado desde tu horario
-  base, botones +/- 1 hora, historial mensual navegable.
+- **Marcaje**: varias jornadas por día (agregas las que necesites con "Agregar jornada extra"),
+  nota/bitácora, autocompletado desde tu horario base, botones +/- 1 hora, historial mensual
+  navegable. Botón "Me pidieron no asistir" para dejar el día como *No convocado* (no resta horas
+  al balance, pero queda registrado que la ausencia no fue por decisión propia).
 - **Licencias y Feriados**: licencia médica, permiso especial u otro, y feriados — cada uno con un
   interruptor de si ajusta o no la meta de horas de ese día.
 - **Estadísticas**: cumplimiento semanal y mensual, balance semanal, mensual y acumulado (horas a
   favor/en contra), promedio de horas por día, conteo de feriados/licencias, y un detalle mensual
   semana por semana en acordeón desplegable.
+- **Informe**: pestaña con identidad visual morada (Universidad de Magallanes) pensada para
+  compartir con la jefatura — selector de período (manual, último/2/3 meses o año completo),
+  resumen de meta vs. horas trabajadas del mes (sin balance a favor/en contra) y detalle día por
+  día con los horarios en formato AM/PM y total; incluye botón Imprimir / PDF.
 - **Funciones y Proyectos**: bitácora aparte de responsabilidades o proyectos asignados.
 - **Configuración**: metas de horas, horario base, días laborales (lunes a domingo), fecha desde la
   que se calcula el balance, y una Papelera con lo eliminado (recuperable por 30 días).

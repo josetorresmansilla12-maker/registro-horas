@@ -102,9 +102,7 @@ function renderInforme() {
 
   dias.forEach(function (iso) {
     var registro = rhGetRegistroByFecha(iso);
-    var minB1 = registro ? rhBlockMinutes(registro.bloque1) : 0;
-    var minB2 = registro ? rhBlockMinutes(registro.bloque2) : 0;
-    var minTotal = minB1 + minB2;
+    var minTotal = rhRegistroMinutes(registro);
     totalMin += minTotal;
 
     var tr = document.createElement("tr");
@@ -117,13 +115,10 @@ function renderInforme() {
     tdFecha.textContent = rhFormatDateDisplay(iso);
     tr.appendChild(tdFecha);
 
-    var tdManana = document.createElement("td");
-    tdManana.textContent = rhInformeBlockLabel(minB1);
-    tr.appendChild(tdManana);
-
-    var tdTarde = document.createElement("td");
-    tdTarde.textContent = rhInformeBlockLabel(minB2);
-    tr.appendChild(tdTarde);
+    var tdJornadas = document.createElement("td");
+    tdJornadas.className = "jornadas-cell";
+    tdJornadas.textContent = rhFormatJornadasRegistro(registro);
+    tr.appendChild(tdJornadas);
 
     var tdTotal = document.createElement("td");
     tdTotal.textContent = rhInformeBlockLabel(minTotal);

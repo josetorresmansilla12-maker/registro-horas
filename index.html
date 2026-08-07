@@ -44,50 +44,23 @@
 
           <div class="field">
             <label for="marcaje-fecha">Fecha</label>
-            <div class="field-inline">
-              <input type="date" id="marcaje-fecha" />
-              <button type="button" class="btn btn-secondary btn-small" id="marcaje-marcar-feriado-btn">📅 Marcar este día como feriado</button>
-            </div>
+            <input type="date" id="marcaje-fecha" />
           </div>
 
-          <div class="field" id="marcaje-licencia-banner" class="hidden">
+          <div class="field hidden" id="marcaje-licencia-banner">
             <div class="banner banner-info" id="marcaje-licencia-banner-text"></div>
           </div>
 
-          <div class="block-group">
-            <h3>Bloque 1 <span class="label-hint">(ej. mañana)</span></h3>
-            <div class="field-row">
-              <div class="field">
-                <label for="marcaje-b1-entrada">Entrada</label>
-                <input type="time" id="marcaje-b1-entrada" />
-              </div>
-              <div class="field">
-                <label for="marcaje-b1-salida">Salida</label>
-                <input type="time" id="marcaje-b1-salida" />
-              </div>
-            </div>
-            <span class="error-msg" id="error-marcaje-b1"></span>
+          <div class="field-inline marcaje-quick-actions">
+            <button type="button" class="btn btn-secondary btn-small" id="marcaje-marcar-feriado-btn">📅 Marcar como feriado</button>
+            <button type="button" class="btn btn-secondary btn-small" id="marcaje-no-convocado-btn">🚫 Me pidieron no asistir</button>
           </div>
 
-          <div class="block-group">
-            <div class="block-group-header">
-              <h3>Bloque 2 <span class="label-hint">(ej. tarde)</span></h3>
-              <label class="switch-option">
-                <input type="checkbox" id="marcaje-b2-activo" />
-                Usar segundo bloque hoy
-              </label>
-            </div>
-            <div class="field-row" id="marcaje-b2-fields">
-              <div class="field">
-                <label for="marcaje-b2-entrada">Entrada</label>
-                <input type="time" id="marcaje-b2-entrada" />
-              </div>
-              <div class="field">
-                <label for="marcaje-b2-salida">Salida</label>
-                <input type="time" id="marcaje-b2-salida" />
-              </div>
-            </div>
-            <span class="error-msg" id="error-marcaje-b2"></span>
+          <!-- Jornadas del día (una o varias). Se generan desde marcaje.js. -->
+          <div id="marcaje-jornadas"></div>
+          <span class="error-msg" id="error-marcaje-bloques"></span>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary btn-small" id="marcaje-add-jornada-btn">➕ Agregar jornada extra</button>
           </div>
 
           <div class="field">
@@ -119,8 +92,7 @@
               <tr>
                 <th>Fecha</th>
                 <th>Día</th>
-                <th>Bloque 1</th>
-                <th>Bloque 2</th>
+                <th>Jornadas</th>
                 <th>Total</th>
                 <th>Nota</th>
                 <th></th>
@@ -343,15 +315,14 @@
               <tr>
                 <th>Día</th>
                 <th>Fecha</th>
-                <th>H. mañana</th>
-                <th>H. tarde</th>
+                <th>Jornadas (horarios)</th>
                 <th>Total día</th>
               </tr>
             </thead>
             <tbody id="informe-table-body"></tbody>
             <tfoot>
               <tr>
-                <th colspan="4">Total del período</th>
+                <th colspan="3">Total del período</th>
                 <th id="informe-total-periodo">0h 00m</th>
               </tr>
             </tfoot>

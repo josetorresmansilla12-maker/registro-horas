@@ -11,6 +11,11 @@ var RH_BACKUP_REMINDER_DAYS = 7;
 var RH_PAPELERA_KEY = "rh_papelera";
 var RH_PAPELERA_DIAS = 30;
 
+// Estado especial de una jornada: la oficina pidió no asistir ese día. No
+// cuenta como incumplimiento (no resta horas), pero deja constancia de que
+// la ausencia no fue por decisión del trabajador.
+var RH_ESTADO_NO_CONVOCADO = "no_convocado";
+
 // ---------- Configuración por defecto ----------
 //
 // Refleja el contrato inicial del usuario: 09:00 a 13:00, un solo bloque,

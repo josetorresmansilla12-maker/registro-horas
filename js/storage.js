@@ -115,6 +115,16 @@ function rhLicenciaAjustaMeta(licencia) {
   return !!licencia && licencia.ajustaMeta !== false;
 }
 
+// Un día laboral queda excluido de la meta (no suma ni resta al balance)
+// cuando lo cubre una licencia/feriado que ajusta meta, o cuando se registró
+// como "no convocado" (la oficina pidió no asistir). Centraliza esa decisión
+// para que balance, meta ajustada y estadísticas coincidan siempre.
+function rhDiaAjustaMeta(iso) {
+  var licencia = rhLicenciaForDate(iso);
+  if (licencia && rhLicenciaAjustaMeta(licencia)) return true;
+  return rhRegistroEsNoConvocado(rhGetRegistroByFecha(iso));
+}
+
 // ---------- Proyectos / funciones asignadas ----------
 
 function rhLoadProyectos() {
@@ -225,8 +235,7 @@ function rhCalcularBalance() {
     var esLaboral = config.diasLaborales.indexOf(d.getDay()) !== -1;
     if (!esLaboral) return;
 
-    var licencia = rhLicenciaForDate(iso);
-    if (licencia && rhLicenciaAjustaMeta(licencia)) return; // día justificado: no afecta el balance
+    if (rhDiaAjustaMeta(iso)) return; // día justificado / no convocado: no afecta el balance
 
     esperadoMin += metaDiaria;
     var registro = rhGetRegistroByFecha(iso);
@@ -267,8 +276,7 @@ function rhMetaAjustadaEnRango(start, end, metaBaseHoras) {
   dias.forEach(function (iso) {
     var d = rhParseISO(iso);
     var esLaboral = config.diasLaborales.indexOf(d.getDay()) !== -1;
-    var licencia = rhLicenciaForDate(iso);
-    if (esLaboral && licencia && rhLicenciaAjustaMeta(licencia)) diasLicenciaLaborales++;
+    if (esLaboral && rhDiaAjustaMeta(iso)) diasLicenciaLaborales++;
   });
   var metaBaseMin = rhHoursToMinutes(metaBaseHoras);
   var descuentoMin = diasLicenciaLaborales * metaDiaria;

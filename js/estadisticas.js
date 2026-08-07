@@ -177,6 +177,9 @@ function rhBuildStatsDayRow(iso, config, metaDiaria, today) {
   } else if (licencia) {
     pill.textContent = rhTipoLicenciaLabel(licencia.tipo);
     pill.classList.add("licencia");
+  } else if (rhRegistroEsNoConvocado(registro)) {
+    pill.textContent = "No convocado";
+    pill.classList.add("licencia");
   } else if (minutes >= metaDiaria - 1) {
     pill.textContent = "Cumplido";
     pill.classList.add("ok");
@@ -247,8 +250,7 @@ function renderStatsMonthWeeks() {
       var dt = rhParseISO(iso);
       var esLaboral = config.diasLaborales.indexOf(dt.getDay()) !== -1;
       if (!esLaboral) return;
-      var licencia = rhLicenciaForDate(iso);
-      if (licencia && rhLicenciaAjustaMeta(licencia)) return;
+      if (rhDiaAjustaMeta(iso)) return;
       metaGrupoMin += metaDiaria;
     });
     var balanceGrupoMin = workedMin - metaGrupoMin;

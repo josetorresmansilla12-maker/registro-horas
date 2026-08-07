@@ -124,9 +124,57 @@ function rhBlockIsInvalid(block) {
   return end <= start;
 }
 
+// Devuelve las jornadas de un registro como arreglo, sin importar si se
+// guardó con el formato nuevo (`bloques`) o el antiguo (`bloque1`/`bloque2`).
+// Así los respaldos viejos siguen sumando bien sin migración manual.
+function rhRegistroBloques(registro) {
+  if (!registro) return [];
+  if (Array.isArray(registro.bloques)) return registro.bloques;
+  var arr = [];
+  if (registro.bloque1 && (registro.bloque1.entrada || registro.bloque1.salida)) arr.push(registro.bloque1);
+  if (registro.bloque2 && (registro.bloque2.entrada || registro.bloque2.salida)) arr.push(registro.bloque2);
+  return arr;
+}
+
+function rhRegistroEsNoConvocado(registro) {
+  return !!(registro && registro.estado === RH_ESTADO_NO_CONVOCADO);
+}
+
 function rhRegistroMinutes(registro) {
   if (!registro) return 0;
-  return rhBlockMinutes(registro.bloque1) + rhBlockMinutes(registro.bloque2);
+  return rhRegistroBloques(registro).reduce(function (sum, b) {
+    return sum + rhBlockMinutes(b);
+  }, 0);
+}
+
+// "09:00" -> "9:00 AM" / "14:30" -> "2:30 PM". Cadena vacía si no es válida.
+function rhFormatHora12(hhmm) {
+  var mins = rhTimeToMinutes(hhmm);
+  if (mins === null) return "";
+  var h = Math.floor(mins / 60);
+  var m = mins % 60;
+  var ampm = h < 12 ? "AM" : "PM";
+  var h12 = h % 12;
+  if (h12 === 0) h12 = 12;
+  return h12 + ":" + String(m).padStart(2, "0") + " " + ampm;
+}
+
+// "9:00 AM – 1:00 PM" para un bloque; "—" si está incompleto.
+function rhFormatBloque12(block) {
+  if (!block || !block.entrada || !block.salida) return "—";
+  return rhFormatHora12(block.entrada) + " – " + rhFormatHora12(block.salida);
+}
+
+// Texto de todas las jornadas de un día, pensado para tablas e informes:
+// "No convocado" si la oficina pidió no asistir, la lista de horarios si hay
+// jornadas, o "—" si el día no tiene marcaje.
+function rhFormatJornadasRegistro(registro) {
+  if (rhRegistroEsNoConvocado(registro)) return "No convocado";
+  var bloques = rhRegistroBloques(registro).filter(function (b) {
+    return b && b.entrada && b.salida;
+  });
+  if (bloques.length === 0) return "—";
+  return bloques.map(rhFormatBloque12).join(" · ");
 }
 
 function rhMinutesToHM(minutes) {

@@ -7,12 +7,7 @@ var rhMarcajeMesActual = rhMonthRange(rhTodayISO()).start;
 var marcajeForm = rhEl("marcaje-form");
 var marcajeIdInput = rhEl("marcaje-id");
 var marcajeFechaInput = rhEl("marcaje-fecha");
-var marcajeB1Entrada = rhEl("marcaje-b1-entrada");
-var marcajeB1Salida = rhEl("marcaje-b1-salida");
-var marcajeB2Activo = rhEl("marcaje-b2-activo");
-var marcajeB2Fields = rhEl("marcaje-b2-fields");
-var marcajeB2Entrada = rhEl("marcaje-b2-entrada");
-var marcajeB2Salida = rhEl("marcaje-b2-salida");
+var marcajeJornadasWrap = rhEl("marcaje-jornadas");
 var marcajeNota = rhEl("marcaje-nota");
 var marcajeTotalPreview = rhEl("marcaje-total-preview");
 var marcajeSubmitBtn = rhEl("marcaje-submit-btn");
@@ -20,20 +15,95 @@ var marcajeCancelBtn = rhEl("marcaje-cancel-btn");
 var marcajeFormTitle = rhEl("marcaje-form-title");
 var marcajeLicenciaBanner = rhEl("marcaje-licencia-banner");
 var marcajeLicenciaBannerText = rhEl("marcaje-licencia-banner-text");
+var marcajeErrorBloques = rhEl("error-marcaje-bloques");
 
-function rhMarcajeToggleB2Fields() {
-  marcajeB2Fields.classList.toggle("hidden", !marcajeB2Activo.checked);
-  if (!marcajeB2Activo.checked) {
-    marcajeB2Entrada.value = "";
-    marcajeB2Salida.value = "";
-  }
-  rhMarcajeUpdateTotalPreview();
+// La jornada del día es una lista de bloques entrada/salida (puede haber más
+// de dos: reunión en la mañana, al mediodía y en la tarde, por ejemplo).
+// Este arreglo es la fuente de la verdad mientras se edita el formulario.
+var rhMarcajeJornadas = [];
+
+function rhMarcajeBloqueVacio() {
+  return { entrada: "", salida: "" };
 }
 
 function rhMarcajeUpdateTotalPreview() {
-  var minutes = rhBlockMinutes({ entrada: marcajeB1Entrada.value, salida: marcajeB1Salida.value }) +
-    (marcajeB2Activo.checked ? rhBlockMinutes({ entrada: marcajeB2Entrada.value, salida: marcajeB2Salida.value }) : 0);
+  var minutes = rhMarcajeJornadas.reduce(function (sum, b) {
+    return sum + rhBlockMinutes(b);
+  }, 0);
   marcajeTotalPreview.textContent = "Total del día: " + rhMinutesToHM(minutes);
+}
+
+function rhMarcajeBuildTimeField(labelText, bloque, key) {
+  var field = document.createElement("div");
+  field.className = "field";
+
+  var label = document.createElement("label");
+  label.textContent = labelText;
+  field.appendChild(label);
+
+  var input = document.createElement("input");
+  input.type = "time";
+  input.value = bloque[key] || "";
+  function sync() {
+    bloque[key] = input.value;
+    rhMarcajeUpdateTotalPreview();
+  }
+  input.addEventListener("input", sync);
+  input.addEventListener("change", sync);
+  field.appendChild(input);
+
+  return field;
+}
+
+function rhMarcajeBuildJornadaRow(bloque, idx) {
+  var group = document.createElement("div");
+  group.className = "block-group";
+
+  var head = document.createElement("div");
+  head.className = "block-group-header";
+
+  var h3 = document.createElement("h3");
+  h3.textContent = idx === 0 ? "Jornada" : "Jornada extra " + idx;
+  head.appendChild(h3);
+
+  // Se puede quitar cualquier jornada siempre que quede al menos una.
+  if (rhMarcajeJornadas.length > 1) {
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn btn-small btn-secondary";
+    removeBtn.textContent = "Quitar";
+    removeBtn.addEventListener("click", function () {
+      rhMarcajeJornadas.splice(idx, 1);
+      rhMarcajeRenderJornadas();
+    });
+    head.appendChild(removeBtn);
+  }
+  group.appendChild(head);
+
+  var row = document.createElement("div");
+  row.className = "field-row";
+  row.appendChild(rhMarcajeBuildTimeField("Entrada", bloque, "entrada"));
+  row.appendChild(rhMarcajeBuildTimeField("Salida", bloque, "salida"));
+  group.appendChild(row);
+
+  return group;
+}
+
+function rhMarcajeRenderJornadas() {
+  rhClear(marcajeJornadasWrap);
+  rhMarcajeJornadas.forEach(function (bloque, idx) {
+    marcajeJornadasWrap.appendChild(rhMarcajeBuildJornadaRow(bloque, idx));
+  });
+  rhEnhanceTimeInputs(marcajeJornadasWrap);
+  rhMarcajeUpdateTotalPreview();
+}
+
+function rhMarcajeSetJornadas(bloques) {
+  var base = (bloques && bloques.length) ? bloques : [rhMarcajeBloqueVacio()];
+  rhMarcajeJornadas = base.map(function (b) {
+    return { entrada: b.entrada || "", salida: b.salida || "" };
+  });
+  rhMarcajeRenderJornadas();
 }
 
 function rhMarcajeShowLicenciaBanner(fecha) {
@@ -51,34 +121,37 @@ function rhMarcajeShowLicenciaBanner(fecha) {
 // se autocompleta con el horario base configurado.
 function rhMarcajeLoadFecha(fecha) {
   rhMarcajeShowLicenciaBanner(fecha);
+  marcajeErrorBloques.textContent = "";
   var existente = rhGetRegistroByFecha(fecha);
   var config = rhLoadConfig();
 
   if (existente) {
     marcajeIdInput.value = existente.id;
-    marcajeB1Entrada.value = existente.bloque1.entrada || "";
-    marcajeB1Salida.value = existente.bloque1.salida || "";
-    var tieneB2 = !!(existente.bloque2 && (existente.bloque2.entrada || existente.bloque2.salida));
-    marcajeB2Activo.checked = tieneB2;
-    marcajeB2Entrada.value = (existente.bloque2 && existente.bloque2.entrada) || "";
-    marcajeB2Salida.value = (existente.bloque2 && existente.bloque2.salida) || "";
     marcajeNota.value = existente.nota || "";
-    marcajeFormTitle.textContent = "Editar jornada — " + rhFormatDateDisplay(fecha);
+    if (rhRegistroEsNoConvocado(existente)) {
+      rhMarcajeSetJornadas([]);
+      marcajeFormTitle.textContent = "Editar jornada — " + rhFormatDateDisplay(fecha) + " (No convocado)";
+    } else {
+      rhMarcajeSetJornadas(rhRegistroBloques(existente));
+      marcajeFormTitle.textContent = "Editar jornada — " + rhFormatDateDisplay(fecha);
+    }
   } else {
     marcajeIdInput.value = "";
-    marcajeB1Entrada.value = config.horarioBase.bloque1.entrada || "";
-    marcajeB1Salida.value = config.horarioBase.bloque1.salida || "";
-    marcajeB2Activo.checked = config.bloque2Activo;
-    marcajeB2Entrada.value = config.horarioBase.bloque2.entrada || "";
-    marcajeB2Salida.value = config.horarioBase.bloque2.salida || "";
     marcajeNota.value = "";
+    var base = [config.horarioBase.bloque1];
+    if (config.bloque2Activo) base.push(config.horarioBase.bloque2);
+    rhMarcajeSetJornadas(base);
     marcajeFormTitle.textContent = "Registrar jornada — " + rhFormatDateDisplay(fecha);
   }
-  rhMarcajeToggleB2Fields();
 }
 
 marcajeFechaInput.addEventListener("change", function () {
   rhMarcajeLoadFecha(marcajeFechaInput.value || rhTodayISO());
+});
+
+rhEl("marcaje-add-jornada-btn").addEventListener("click", function () {
+  rhMarcajeJornadas.push(rhMarcajeBloqueVacio());
+  rhMarcajeRenderJornadas();
 });
 
 rhEl("marcaje-marcar-feriado-btn").addEventListener("click", function () {
@@ -87,9 +160,32 @@ rhEl("marcaje-marcar-feriado-btn").addEventListener("click", function () {
   rhActivateTab("licencias");
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
-marcajeB2Activo.addEventListener("change", rhMarcajeToggleB2Fields);
-[marcajeB1Entrada, marcajeB1Salida, marcajeB2Entrada, marcajeB2Salida].forEach(function (input) {
-  input.addEventListener("input", rhMarcajeUpdateTotalPreview);
+
+// "Me pidieron no asistir": marca el día como No convocado en un clic. No es
+// una ausencia del trabajador, así que no resta horas al balance.
+rhEl("marcaje-no-convocado-btn").addEventListener("click", function () {
+  var fecha = marcajeFechaInput.value || rhTodayISO();
+  var existente = rhGetRegistroByFecha(fecha);
+
+  var aviso = "¿Marcar el " + rhFormatDateDisplay(fecha) + ' como "No convocado"?\n\n' +
+    "Se usa cuando la oficina te pide no asistir: ese día no cuenta como " +
+    "incumplimiento (no resta horas) y aparecerá como \"No convocado\" en el historial y en el informe.";
+  if (existente && rhRegistroMinutes(existente) > 0) {
+    aviso += "\n\nOJO: este día ya tiene horas registradas y quedarán reemplazadas.";
+  }
+  if (!confirm(aviso)) return;
+
+  rhUpsertRegistro({
+    id: null,
+    fecha: fecha,
+    bloques: [],
+    nota: marcajeNota.value.trim(),
+    estado: RH_ESTADO_NO_CONVOCADO
+  });
+  rhShowAlert("El " + rhFormatDateDisplay(fecha) + " quedó marcado como No convocado.", "success");
+  rhMarcajeMesActual = rhMonthRange(fecha).start;
+  rhMarcajeResetForm();
+  renderMarcajeTable();
 });
 
 function rhMarcajeResetForm() {
@@ -105,36 +201,37 @@ marcajeCancelBtn.addEventListener("click", rhMarcajeResetForm);
 marcajeForm.addEventListener("submit", function (e) {
   e.preventDefault();
   var fecha = marcajeFechaInput.value || rhTodayISO();
-  var b1 = { entrada: marcajeB1Entrada.value, salida: marcajeB1Salida.value };
-  var b2 = marcajeB2Activo.checked ? { entrada: marcajeB2Entrada.value, salida: marcajeB2Salida.value } : { entrada: "", salida: "" };
   var nota = marcajeNota.value.trim();
+  marcajeErrorBloques.textContent = "";
 
-  var errorB1 = rhEl("error-marcaje-b1");
-  var errorB2 = rhEl("error-marcaje-b2");
-  errorB1.textContent = "";
-  errorB2.textContent = "";
+  var bloques = [];
+  for (var i = 0; i < rhMarcajeJornadas.length; i++) {
+    var b = rhMarcajeJornadas[i];
+    var tieneEntrada = !!b.entrada;
+    var tieneSalida = !!b.salida;
+    if (!tieneEntrada && !tieneSalida) continue; // jornada vacía: se ignora
+    if (tieneEntrada !== tieneSalida) {
+      marcajeErrorBloques.textContent = "Completa entrada y salida en cada jornada, o deja la jornada vacía.";
+      return;
+    }
+    if (rhBlockIsInvalid(b)) {
+      marcajeErrorBloques.textContent = "En cada jornada, la salida debe ser posterior a la entrada.";
+      return;
+    }
+    bloques.push({ entrada: b.entrada, salida: b.salida });
+  }
 
-  var b1Partial = (!!b1.entrada) !== (!!b1.salida);
-  var b2Partial = marcajeB2Activo.checked && ((!!b2.entrada) !== (!!b2.salida));
-  if (b1Partial) errorB1.textContent = "Completa entrada y salida, o deja el bloque vacío.";
-  if (b2Partial) errorB2.textContent = "Completa entrada y salida, o desactiva el bloque.";
-  if (rhBlockIsInvalid(b1)) errorB1.textContent = "La salida debe ser posterior a la entrada.";
-  if (marcajeB2Activo.checked && rhBlockIsInvalid(b2)) errorB2.textContent = "La salida debe ser posterior a la entrada.";
-  if (errorB1.textContent || errorB2.textContent) return;
-
-  if (!b1.entrada && !b2.entrada && !nota) {
-    rhShowAlert("Ingresa al menos un bloque de horario o una nota antes de guardar.", "error");
+  if (bloques.length === 0 && !nota) {
+    rhShowAlert("Ingresa al menos una jornada con horario o una nota antes de guardar.", "error");
     return;
   }
 
-  var registro = {
+  rhUpsertRegistro({
     id: marcajeIdInput.value || null,
     fecha: fecha,
-    bloque1: b1,
-    bloque2: b2,
+    bloques: bloques,
     nota: nota
-  };
-  rhUpsertRegistro(registro);
+  });
   rhShowAlert("Jornada del " + rhFormatDateDisplay(fecha) + " guardada.", "success");
   rhMarcajeMesActual = rhMonthRange(fecha).start;
   rhMarcajeResetForm();
@@ -162,11 +259,6 @@ marcajeMesNextBtn.addEventListener("click", function () {
   renderMarcajeTable();
 });
 
-function rhBlockLabel(block) {
-  if (!block || !block.entrada || !block.salida) return "—";
-  return block.entrada + " - " + block.salida;
-}
-
 function renderMarcajeTable() {
   var range = rhMonthRange(rhMarcajeMesActual);
   var d = rhParseISO(rhMarcajeMesActual);
@@ -190,13 +282,10 @@ function renderMarcajeTable() {
     tdDia.textContent = rhDayOfWeekLabel(r.fecha, true);
     tr.appendChild(tdDia);
 
-    var tdB1 = document.createElement("td");
-    tdB1.textContent = rhBlockLabel(r.bloque1);
-    tr.appendChild(tdB1);
-
-    var tdB2 = document.createElement("td");
-    tdB2.textContent = rhBlockLabel(r.bloque2);
-    tr.appendChild(tdB2);
+    var tdJornadas = document.createElement("td");
+    tdJornadas.className = "jornadas-cell";
+    tdJornadas.textContent = rhFormatJornadasRegistro(r);
+    tr.appendChild(tdJornadas);
 
     var tdTotal = document.createElement("td");
     tdTotal.textContent = rhMinutesToHM(rhRegistroMinutes(r));

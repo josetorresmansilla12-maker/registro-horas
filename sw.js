@@ -3,7 +3,7 @@
 // muestra la versión más nueva cuando hay internet, y el caché solo se usa
 // si el teléfono está sin conexión.
 
-var CACHE_NAME = "registro-horas-cache-v7";
+var CACHE_NAME = "registro-horas-cache-v8";
 var CORE_ASSETS = [
   "./",
   "./index.html",
