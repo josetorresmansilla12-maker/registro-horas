@@ -874,6 +874,64 @@ body {
   gap: 8px;
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: var(--color-accent);
+}
+
+/* ---------- Marcaje rápido (entrada/salida con la hora actual) ---------- */
+
+.marcaje-rapido-section {
+  border-top: 4px solid var(--color-primary);
+}
+
+.marcaje-rapido {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.marcaje-rapido-status {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-tint);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.marcaje-rapido-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.marcaje-rapido-actions .btn {
+  flex: 1;
+  min-width: 170px;
+  padding: 14px 20px;
+  font-size: 1rem;
+}
+
+#marcaje-marcar-salida-btn {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+#marcaje-marcar-salida-btn:hover {
+  background: var(--color-danger-dark);
+}
+
+.marcaje-rapido-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
 /* ---------- Informe (identidad morada, Universidad de Magallanes) ---------- */
 
 #tab-informe {

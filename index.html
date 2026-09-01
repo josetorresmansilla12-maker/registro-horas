@@ -37,6 +37,18 @@
 
     <!-- ===================== TAB: MARCAJE ===================== -->
     <section id="tab-marcaje" class="tab-panel">
+      <section class="form-section marcaje-rapido-section">
+        <h2>Marcaje rápido</h2>
+        <div class="marcaje-rapido">
+          <p class="marcaje-rapido-status" id="marcaje-rapido-status">Cargando…</p>
+          <div class="marcaje-rapido-actions">
+            <button type="button" class="btn btn-primary" id="marcaje-marcar-entrada-btn">🟢 Marcar entrada ahora</button>
+            <button type="button" class="btn btn-secondary" id="marcaje-marcar-salida-btn">🔴 Marcar salida ahora</button>
+          </div>
+          <p class="marcaje-rapido-hint">Marca la hora justo cuando llegues o te vayas de tu trabajo. También puedes ingresar los horarios a mano en el formulario de abajo.</p>
+        </div>
+      </section>
+
       <section class="form-section">
         <h2 id="marcaje-form-title">Registrar jornada</h2>
         <form id="marcaje-form" novalidate>
@@ -49,6 +61,10 @@
 
           <div class="field hidden" id="marcaje-licencia-banner">
             <div class="banner banner-info" id="marcaje-licencia-banner-text"></div>
+          </div>
+
+          <div class="field hidden" id="marcaje-existente-banner">
+            <div class="banner banner-info" id="marcaje-existente-banner-text"></div>
           </div>
 
           <div class="field-inline marcaje-quick-actions">
