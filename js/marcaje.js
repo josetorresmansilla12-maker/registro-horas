@@ -21,6 +21,7 @@ var marcajeErrorBloques = rhEl("error-marcaje-bloques");
 var marcajeRapidoStatus = rhEl("marcaje-rapido-status");
 var marcajeMarcarEntradaBtn = rhEl("marcaje-marcar-entrada-btn");
 var marcajeMarcarSalidaBtn = rhEl("marcaje-marcar-salida-btn");
+var marcajeDeshacerBtn = rhEl("marcaje-deshacer-btn");
 
 // La jornada del día es una lista de bloques entrada/salida (puede haber más
 // de dos: reunión en la mañana, al mediodía y en la tarde, por ejemplo).
@@ -323,6 +324,19 @@ function rhMarcajeRenderRapidoStatus() {
     marcajeMarcarEntradaBtn.disabled = false;
     marcajeMarcarSalidaBtn.disabled = true;
   }
+
+  // Botón para revertir la última marca de hoy (por si se tocó por error).
+  if (bloquesHoy.length > 0) {
+    var ultimo = bloquesHoy[bloquesHoy.length - 1];
+    if (ultimo.salida) {
+      marcajeDeshacerBtn.textContent = "↩️ Deshacer salida (" + rhFormatHora12(ultimo.salida) + ")";
+    } else {
+      marcajeDeshacerBtn.textContent = "↩️ Deshacer entrada (" + rhFormatHora12(ultimo.entrada) + ")";
+    }
+    marcajeDeshacerBtn.classList.remove("hidden");
+  } else {
+    marcajeDeshacerBtn.classList.add("hidden");
+  }
 }
 
 // Marca la hora actual como entrada o salida del día de hoy, directo sobre el
@@ -373,6 +387,45 @@ function rhMarcajeMarcarHoraAhora(tipo) {
 
 marcajeMarcarEntradaBtn.addEventListener("click", function () { rhMarcajeMarcarHoraAhora("entrada"); });
 marcajeMarcarSalidaBtn.addEventListener("click", function () { rhMarcajeMarcarHoraAhora("salida"); });
+
+// Revierte la última marca de hoy (por si se presionó "Marcar entrada" o
+// "Marcar salida" por error): si lo último fue una salida, solo se borra la
+// salida (la entrada queda abierta de nuevo); si lo último fue una entrada
+// sin salida, se elimina esa jornada completa.
+function rhMarcajeDeshacerUltimaMarca() {
+  var fecha = rhTodayISO();
+  var existente = rhGetRegistroByFecha(fecha);
+  if (!existente) return;
+  var bloques = rhRegistroBloques(existente).map(function (b) {
+    return { entrada: b.entrada || "", salida: b.salida || "" };
+  });
+  if (bloques.length === 0) return;
+
+  var ultimo = bloques[bloques.length - 1];
+  var mensaje;
+  if (ultimo.salida) {
+    if (!confirm("¿Deshacer la salida marcada a las " + rhFormatHora12(ultimo.salida) +
+      "? La entrada de las " + rhFormatHora12(ultimo.entrada) + " se mantiene.")) return;
+    ultimo.salida = "";
+    mensaje = "Se deshizo la salida marcada.";
+  } else {
+    if (!confirm("¿Deshacer la entrada marcada a las " + rhFormatHora12(ultimo.entrada) + "?")) return;
+    bloques.pop();
+    mensaje = "Se deshizo la entrada marcada.";
+  }
+
+  if (bloques.length === 0 && !existente.nota) {
+    rhDeleteRegistro(existente.id);
+  } else {
+    rhUpsertRegistro({ id: existente.id, fecha: fecha, bloques: bloques, nota: existente.nota || "", estado: null });
+  }
+
+  rhShowAlert(mensaje, "success");
+  if (marcajeFechaInput.value === fecha) rhMarcajeLoadFecha(fecha);
+  renderMarcajeTable();
+}
+
+marcajeDeshacerBtn.addEventListener("click", rhMarcajeDeshacerUltimaMarca);
 
 // ---------- Historial mensual ----------
 
