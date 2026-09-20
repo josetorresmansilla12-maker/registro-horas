@@ -407,6 +407,21 @@ body {
   background: var(--color-tint);
 }
 
+/* Fila de un día cubierto por una licencia/feriado sin registro propio
+   (ver rhMarcajeBuildLicenciaRow): rojo suave para distinguirla de un
+   vistazo de los días trabajados. */
+.data-table tbody tr.row-licencia {
+  background: #fbeae8;
+}
+
+.data-table tbody tr.row-licencia td {
+  color: var(--color-danger-dark);
+}
+
+.data-table tbody tr.row-licencia:hover {
+  background: #f7dcd9;
+}
+
 .data-table .col-actions {
   text-align: right;
   white-space: nowrap;

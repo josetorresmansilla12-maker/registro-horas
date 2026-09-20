@@ -125,6 +125,33 @@ function rhDiaAjustaMeta(iso) {
   return rhRegistroExcluyeMeta(rhGetRegistroByFecha(iso));
 }
 
+// Etiqueta de "por qué este día no tiene horas": el estado del registro
+// (ej. "Aún no contratado", o un "No convocado" antiguo de un solo día) si
+// existe; si no, la licencia que cubre esa fecha (feriado, no convocado,
+// licencia médica, etc.) — pero solo en días laborales, para que un fin de
+// semana que quede dentro de un rango de licencia (por comodidad al elegir
+// las fechas) no se muestre como "No convocado"/"Feriado" sin necesidad,
+// ya que de por sí no era un día que tocara trabajar. "" si no aplica nada.
+function rhEstadoOLicenciaLabel(iso) {
+  var estadoLabel = rhRegistroEstadoLabel(rhGetRegistroByFecha(iso));
+  if (estadoLabel) return estadoLabel;
+  var config = rhLoadConfig();
+  var esLaboral = config.diasLaborales.indexOf(rhParseISO(iso).getDay()) !== -1;
+  if (!esLaboral) return "";
+  var licencia = rhLicenciaForDate(iso);
+  return licencia ? rhTipoLicenciaLabel(licencia.tipo) : "";
+}
+
+// Texto de las jornadas de un día para tablas/informes: usa
+// rhEstadoOLicenciaLabel cuando aplica (para que un feriado o "no convocado"
+// se lean tal cual, no como un simple "—"), y si no muestra los horarios
+// trabajados de ese día.
+function rhFormatJornadasDia(iso) {
+  var etiqueta = rhEstadoOLicenciaLabel(iso);
+  if (etiqueta) return etiqueta;
+  return rhFormatJornadasRegistro(rhGetRegistroByFecha(iso));
+}
+
 // ---------- Proyectos / funciones asignadas ----------
 
 function rhLoadProyectos() {

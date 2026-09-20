@@ -126,7 +126,7 @@ function renderInforme() {
 
     var tdJornadas = document.createElement("td");
     tdJornadas.className = "jornadas-cell";
-    tdJornadas.textContent = rhFormatJornadasRegistro(registro);
+    tdJornadas.textContent = rhFormatJornadasDia(iso);
     tr.appendChild(tdJornadas);
 
     var tdTotal = document.createElement("td");

@@ -453,77 +453,144 @@ marcajeMesNextBtn.addEventListener("click", function () {
   renderMarcajeTable();
 });
 
+function rhMarcajeBuildRegistroRow(r) {
+  var tr = document.createElement("tr");
+
+  var tdFecha = document.createElement("td");
+  tdFecha.textContent = rhFormatDateDisplay(r.fecha);
+  tr.appendChild(tdFecha);
+
+  var tdDia = document.createElement("td");
+  tdDia.textContent = rhDayOfWeekLabel(r.fecha, true);
+  tr.appendChild(tdDia);
+
+  var tdJornadas = document.createElement("td");
+  tdJornadas.className = "jornadas-cell";
+  tdJornadas.textContent = rhFormatJornadasRegistro(r);
+  tr.appendChild(tdJornadas);
+
+  var tdTotal = document.createElement("td");
+  tdTotal.textContent = rhMinutesToHM(rhRegistroMinutes(r));
+  tr.appendChild(tdTotal);
+
+  var tdNota = document.createElement("td");
+  tdNota.className = "note-cell";
+  tdNota.textContent = r.nota || "—";
+  tr.appendChild(tdNota);
+
+  var tdActions = document.createElement("td");
+  tdActions.className = "col-actions";
+  var actionsWrap = document.createElement("div");
+  actionsWrap.className = "row-actions";
+
+  var editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "btn btn-small btn-secondary";
+  editBtn.textContent = "Editar";
+  editBtn.addEventListener("click", function () {
+    marcajeFechaInput.value = r.fecha;
+    rhMarcajeLoadFecha(r.fecha);
+    marcajeCancelBtn.classList.remove("hidden");
+    marcajeSubmitBtn.textContent = "Guardar cambios";
+    rhActivateTab("marcaje");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  var delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "btn btn-small btn-danger";
+  delBtn.textContent = "Eliminar";
+  delBtn.addEventListener("click", function () {
+    if (!confirm("¿Eliminar el registro del " + rhFormatDateDisplay(r.fecha) + "?")) return;
+    rhDeleteRegistro(r.id);
+    renderMarcajeTable();
+    rhShowAlert("Registro eliminado.", "success");
+  });
+
+  actionsWrap.appendChild(editBtn);
+  actionsWrap.appendChild(delBtn);
+  tdActions.appendChild(actionsWrap);
+  tr.appendChild(tdActions);
+
+  return tr;
+}
+
+// Fila para un día laboral sin registro propio pero cubierto por una
+// licencia (feriado, no convocado, licencia médica, etc.): se resalta en
+// rojo suave para que quede visible de un vistazo que ese día no está
+// simplemente "vacío", sino justificado.
+function rhMarcajeBuildLicenciaRow(fecha, licencia) {
+  var tr = document.createElement("tr");
+  tr.className = "row-licencia";
+
+  var tdFecha = document.createElement("td");
+  tdFecha.textContent = rhFormatDateDisplay(fecha);
+  tr.appendChild(tdFecha);
+
+  var tdDia = document.createElement("td");
+  tdDia.textContent = rhDayOfWeekLabel(fecha, true);
+  tr.appendChild(tdDia);
+
+  var tdJornadas = document.createElement("td");
+  tdJornadas.className = "jornadas-cell";
+  tdJornadas.textContent = rhTipoLicenciaLabel(licencia.tipo);
+  tr.appendChild(tdJornadas);
+
+  var tdTotal = document.createElement("td");
+  tdTotal.textContent = "—";
+  tr.appendChild(tdTotal);
+
+  var tdNota = document.createElement("td");
+  tdNota.className = "note-cell";
+  tdNota.textContent = licencia.detalle || "—";
+  tr.appendChild(tdNota);
+
+  var tdActions = document.createElement("td");
+  tdActions.className = "col-actions";
+  var verBtn = document.createElement("button");
+  verBtn.type = "button";
+  verBtn.className = "btn btn-small btn-secondary";
+  verBtn.textContent = "Ver en Licencias";
+  verBtn.addEventListener("click", function () {
+    rhActivateTab("licencias");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  tdActions.appendChild(verBtn);
+  tr.appendChild(tdActions);
+
+  return tr;
+}
+
 function renderMarcajeTable() {
   var range = rhMonthRange(rhMarcajeMesActual);
   var d = rhParseISO(rhMarcajeMesActual);
   marcajeMesLabel.textContent = RH_MESES[d.getMonth()] + " " + d.getFullYear();
+  var config = rhLoadConfig();
 
   var registros = rhLoadRegistros()
-    .filter(function (r) { return rhIsDateInRange(r.fecha, range.start, range.end); })
+    .filter(function (r) { return rhIsDateInRange(r.fecha, range.start, range.end); });
+  var fechasConRegistro = {};
+  registros.forEach(function (r) { fechasConRegistro[r.fecha] = true; });
+
+  // Días laborales del mes cubiertos por una licencia/feriado que todavía no
+  // tienen un registro propio: se agregan como filas informativas.
+  var filasLicencia = rhDaysBetweenInclusive(range.start, range.end)
+    .filter(function (iso) {
+      if (fechasConRegistro[iso]) return false;
+      if (config.diasLaborales.indexOf(rhParseISO(iso).getDay()) === -1) return false;
+      return !!rhLicenciaForDate(iso);
+    })
+    .map(function (iso) { return { fecha: iso, licencia: rhLicenciaForDate(iso) }; });
+
+  var filas = registros.map(function (r) { return { fecha: r.fecha, registro: r }; })
+    .concat(filasLicencia)
     .sort(function (a, b) { return rhCompareISO(b.fecha, a.fecha); });
 
   rhClear(marcajeTableBody);
-  marcajeEmptyState.classList.toggle("hidden", registros.length > 0);
+  marcajeEmptyState.classList.toggle("hidden", filas.length > 0);
 
-  registros.forEach(function (r) {
-    var tr = document.createElement("tr");
-
-    var tdFecha = document.createElement("td");
-    tdFecha.textContent = rhFormatDateDisplay(r.fecha);
-    tr.appendChild(tdFecha);
-
-    var tdDia = document.createElement("td");
-    tdDia.textContent = rhDayOfWeekLabel(r.fecha, true);
-    tr.appendChild(tdDia);
-
-    var tdJornadas = document.createElement("td");
-    tdJornadas.className = "jornadas-cell";
-    tdJornadas.textContent = rhFormatJornadasRegistro(r);
-    tr.appendChild(tdJornadas);
-
-    var tdTotal = document.createElement("td");
-    tdTotal.textContent = rhMinutesToHM(rhRegistroMinutes(r));
-    tr.appendChild(tdTotal);
-
-    var tdNota = document.createElement("td");
-    tdNota.className = "note-cell";
-    tdNota.textContent = r.nota || "—";
-    tr.appendChild(tdNota);
-
-    var tdActions = document.createElement("td");
-    tdActions.className = "col-actions";
-    var actionsWrap = document.createElement("div");
-    actionsWrap.className = "row-actions";
-
-    var editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.className = "btn btn-small btn-secondary";
-    editBtn.textContent = "Editar";
-    editBtn.addEventListener("click", function () {
-      marcajeFechaInput.value = r.fecha;
-      rhMarcajeLoadFecha(r.fecha);
-      marcajeCancelBtn.classList.remove("hidden");
-      marcajeSubmitBtn.textContent = "Guardar cambios";
-      rhActivateTab("marcaje");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-
-    var delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "btn btn-small btn-danger";
-    delBtn.textContent = "Eliminar";
-    delBtn.addEventListener("click", function () {
-      if (!confirm("¿Eliminar el registro del " + rhFormatDateDisplay(r.fecha) + "?")) return;
-      rhDeleteRegistro(r.id);
-      renderMarcajeTable();
-      rhShowAlert("Registro eliminado.", "success");
-    });
-
-    actionsWrap.appendChild(editBtn);
-    actionsWrap.appendChild(delBtn);
-    tdActions.appendChild(actionsWrap);
-    tr.appendChild(tdActions);
-
+  filas.forEach(function (item) {
+    var tr = item.registro ? rhMarcajeBuildRegistroRow(item.registro) : rhMarcajeBuildLicenciaRow(item.fecha, item.licencia);
     marcajeTableBody.appendChild(tr);
   });
 

@@ -82,7 +82,7 @@ function rhBuildInformeRows(start, end) {
     var minutos = rhRegistroMinutes(registro);
     totalMin += minutos;
     var nota = registro ? (registro.nota || "") : "";
-    var estadoLabel = rhRegistroEstadoLabel(registro);
+    var estadoLabel = rhEstadoOLicenciaLabel(iso);
     if (estadoLabel) {
       nota = nota ? estadoLabel + " · " + nota : estadoLabel;
     }
