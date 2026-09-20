@@ -115,8 +115,8 @@ function rhMarcajeSetJornadas(bloques) {
 function rhMarcajeShowLicenciaBanner(fecha) {
   var licencia = rhLicenciaForDate(fecha);
   if (licencia) {
-    marcajeLicenciaBannerText.textContent = "Este día está cubierto por una licencia (" + rhTipoLicenciaLabel(licencia.tipo) + ") del " +
-      rhFormatDateDisplay(licencia.fechaInicio) + " al " + rhFormatDateDisplay(licencia.fechaFin) + ".";
+    marcajeLicenciaBannerText.textContent = "Este día está marcado como \"" + rhTipoLicenciaLabel(licencia.tipo) + "\" (del " +
+      rhFormatDateDisplay(licencia.fechaInicio) + " al " + rhFormatDateDisplay(licencia.fechaFin) + ").";
     marcajeLicenciaBanner.classList.remove("hidden");
   } else {
     marcajeLicenciaBanner.classList.add("hidden");
@@ -196,8 +196,9 @@ rhEl("marcaje-marcar-feriado-btn").addEventListener("click", function () {
 });
 
 // Marca el día seleccionado con un estado especial (sin horas trabajadas) que
-// no cuenta como incumplimiento ni afecta el cálculo: "No convocado" o
-// "Aún no contratado".
+// no cuenta como incumplimiento ni afecta el cálculo, ej: "Aún no contratado".
+// Es para un solo día; para períodos de varios días (ej: "No convocado" por
+// una semana) se usa una licencia con rango de fechas en vez de esto.
 function rhMarcajeMarcarEstado(estado, label, descripcion) {
   var fecha = marcajeFechaInput.value || rhTodayISO();
   var existente = rhGetRegistroByFecha(fecha);
@@ -221,11 +222,15 @@ function rhMarcajeMarcarEstado(estado, label, descripcion) {
   renderMarcajeTable();
 }
 
-// "No me convocaron": la oficina pidió no asistir ese día.
+// "No me convocaron": la oficina pidió no asistir. Se guarda como licencia
+// (con fecha de inicio y de término) para poder cubrir de una vez un día
+// suelto o un período completo (ej: toda una semana de receso), sin tener
+// que marcar día por día.
 rhEl("marcaje-no-convocado-btn").addEventListener("click", function () {
-  rhMarcajeMarcarEstado(RH_ESTADO_NO_CONVOCADO, "No convocado",
-    "Se usa cuando la oficina te pide no asistir: ese día no cuenta como " +
-    "incumplimiento (no resta horas) y aparecerá como \"No convocado\" en el historial y en el informe.");
+  var fecha = marcajeFechaInput.value || rhTodayISO();
+  rhLicenciaPrefillNoConvocado(fecha);
+  rhActivateTab("licencias");
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 // "Aún no contratado": días previos al inicio del contrato o períodos sin él.

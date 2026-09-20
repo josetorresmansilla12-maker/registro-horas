@@ -191,7 +191,8 @@ function renderEstadisticas() {
   // ---- Feriados y licencias del mes ----
   var especiales = rhContarDiasEspeciales(monthRange.start, monthRange.end);
   rhEl("stats-especiales-value").textContent = especiales.total;
-  rhEl("stats-especiales-sub").textContent = especiales.feriados + " feriado(s) · " + especiales.licencias + " licencia(s)/permiso(s)";
+  rhEl("stats-especiales-sub").textContent = especiales.feriados + " feriado(s) · " + especiales.noConvocados +
+    " no convocado(s) · " + especiales.licencias + " licencia(s)/permiso(s)";
 
   renderStatsMonthWeeks();
 }

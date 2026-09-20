@@ -53,6 +53,18 @@ function rhLicenciaPrefillFeriado(fecha) {
   licenciaDetalleInput.focus();
 }
 
+// Prellena el formulario para marcar "No convocado" desde Marcaje. Queda con
+// inicio = fin = la fecha elegida (un solo día), pero al ser una licencia con
+// rango de fechas, basta con cambiar la fecha de término para cubrir varios
+// días de una vez (ej: toda una semana sin que llamen a trabajar).
+function rhLicenciaPrefillNoConvocado(fecha) {
+  rhLicenciaResetForm();
+  licenciaInicioInput.value = fecha;
+  licenciaFinInput.value = fecha;
+  licenciaTipoSelect.value = "no_convocado";
+  licenciaDetalleInput.focus();
+}
+
 licenciaCancelBtn.addEventListener("click", rhLicenciaResetForm);
 
 licenciaForm.addEventListener("submit", function (e) {

@@ -249,19 +249,25 @@ function rhCalcularBalance() {
   };
 }
 
-// Cuenta los días (dentro de un rango) cubiertos por una licencia o feriado,
-// separados por si ese tipo es un feriado o una ausencia personal.
+// Cuenta los días (dentro de un rango) cubiertos por una licencia, feriado o
+// "no convocado" (por licencia, o por un registro suelto de antes de que "no
+// convocado" se pudiera marcar por rango de fechas).
 function rhContarDiasEspeciales(start, end) {
   var dias = rhDaysBetweenInclusive(start, end);
   var feriados = 0;
+  var noConvocados = 0;
   var licencias = 0;
   dias.forEach(function (iso) {
     var l = rhLicenciaForDate(iso);
-    if (!l) return;
-    if (l.tipo === "feriado") feriados++;
-    else licencias++;
+    if (l) {
+      if (l.tipo === "feriado") feriados++;
+      else if (l.tipo === "no_convocado") noConvocados++;
+      else licencias++;
+      return;
+    }
+    if (rhRegistroEsNoConvocado(rhGetRegistroByFecha(iso))) noConvocados++;
   });
-  return { feriados: feriados, licencias: licencias, total: feriados + licencias };
+  return { feriados: feriados, noConvocados: noConvocados, licencias: licencias, total: feriados + noConvocados + licencias };
 }
 
 // Meta ajustada para un rango cualquiera: descuenta la meta diaria por cada

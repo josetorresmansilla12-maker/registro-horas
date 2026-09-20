@@ -13,7 +13,11 @@ var RH_PAPELERA_DIAS = 30;
 
 // Estados especiales de una jornada (día sin horas trabajadas que igual NO
 // cuenta como incumplimiento ni afecta el cálculo de horas):
-//  - no_convocado: la oficina pidió no asistir ese día.
+//  - no_convocado: la oficina pidió no asistir ese día. Se mantiene solo
+//    para leer registros antiguos guardados así (día suelto marcado desde
+//    Marcaje); desde que "No convocado" se puede marcar por rango de fechas,
+//    lo nuevo se guarda como licencia (ver RH_TIPOS_LICENCIA) para que un
+//    período completo quede en un solo registro editable.
 //  - no_contratado: día previo al inicio del contrato, o período sin contrato
 //    (aún no trabajabas / no te habían recontratado).
 var RH_ESTADO_NO_CONVOCADO = "no_convocado";
@@ -41,6 +45,7 @@ var RH_TIPOS_LICENCIA = [
   { id: "medica", label: "Licencia médica" },
   { id: "permiso", label: "Permiso especial" },
   { id: "feriado", label: "Feriado" },
+  { id: "no_convocado", label: "No convocado" },
   { id: "otro", label: "Otro" }
 ];
 
