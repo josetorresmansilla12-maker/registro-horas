@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   renderMarcajeTable();
   renderBackupReminder();
   rhActivateTab("marcaje");
+  rhSyncIniciar();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(function (e) {

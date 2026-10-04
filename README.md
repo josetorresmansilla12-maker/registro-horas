@@ -1,8 +1,8 @@
 # Registro de Horas
 
 App personal de marcaje de horas, licencias/feriados, estadísticas y control de saldo de horas.
-100% local: no usa servidor ni base de datos externa — todo se guarda en el `localStorage` del
-navegador donde la abras (o del teléfono, si se instala como PWA).
+Todo se guarda en el `localStorage` del navegador donde la abras (o del teléfono, si se instala
+como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abajo).
 
 ## Funciones
 
@@ -45,6 +45,10 @@ navegador donde la abras (o del teléfono, si se instala como PWA).
 - **Respaldo**: exportar/importar todos los datos en `.json` (la importación nunca sobrescribe un
   marcaje ya guardado; solo le agrega las actividades que traiga el respaldo) y aviso si llevas
   más de 7 días sin respaldar.
+- **Sincronización** teléfono ↔ computador (Configuración): con un mismo código secreto, los datos
+  se guardan en Firebase (proyecto propio "Registro de Horas", Realtime Database) y aparecen solos
+  en el otro dispositivo en segundos. Sin internet se guarda local y se sube al volver la conexión;
+  si ambos cambiaron algo a la vez, se combina sin perder jornadas.
 - **Diseño**: color morado de la Universidad de Magallanes, pensado primero para el celular.
 
 ## Uso local

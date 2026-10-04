@@ -58,6 +58,7 @@ function renderConfigForm() {
 
   rhConfigRenderExplicacionMeta();
   rhConfigRenderActividades();
+  renderSyncConfig();
 }
 
 // ---------- Actividades habituales ----------

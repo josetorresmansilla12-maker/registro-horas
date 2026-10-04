@@ -12,7 +12,7 @@
 </head>
 <body>
   <header class="app-header">
-    <h1>🕒 Registro de Horas</h1>
+    <h1>🕒 Registro de Horas <span class="sync-indicador hidden" id="sync-indicador" aria-label="Estado de sincronización">☁️</span></h1>
     <p class="subtitle">Marcaje diario, estadísticas y control de saldo de horas</p>
     <div class="header-actions">
       <button type="button" id="open-export-btn" class="btn btn-header">📊 <span class="label-largo">Exportar a </span>Excel</button>
@@ -474,6 +474,38 @@
         </form>
       </section>
 
+      <section class="form-section sync-section">
+        <h2>☁️ Sincronizar teléfono y computador</h2>
+        <p class="sync-estado" id="sync-estado"></p>
+
+        <div id="sync-desconectado">
+          <p class="label-hint">
+            Usa el <strong>mismo código</strong> en tu teléfono y en tu computador para ver los mismos datos en
+            ambos. Conecta primero el dispositivo que tiene tus datos (tu teléfono): se suben a la nube. Después,
+            en el otro, ingresa el mismo código y se cargan solos. Guarda el código como una contraseña.
+          </p>
+          <div class="field">
+            <label for="sync-codigo-input">Código de sincronización</label>
+            <input type="text" id="sync-codigo-input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej: ABCD-EFGH-JKLM-NPQR" />
+          </div>
+          <div class="form-actions sync-acciones">
+            <button type="button" class="btn btn-secondary" id="sync-generar-btn">🎲 Generar código</button>
+            <button type="button" class="btn btn-primary" id="sync-conectar-btn">Conectar</button>
+          </div>
+        </div>
+
+        <div id="sync-conectado" class="hidden">
+          <p class="label-hint">Código de este dispositivo (ingrésalo igual en el otro):</p>
+          <p class="sync-codigo" id="sync-codigo-actual"></p>
+          <div class="form-actions sync-acciones">
+            <button type="button" class="btn btn-secondary btn-small" id="sync-copiar-btn">📋 Copiar código</button>
+            <button type="button" class="btn btn-secondary btn-small" id="sync-ahora-btn">🔄 Sincronizar ahora</button>
+            <button type="button" class="btn btn-secondary btn-small" id="sync-desconectar-btn">Desconectar</button>
+          </div>
+          <p class="label-hint">Cada cambio se guarda en la nube en segundos y aparece solo en el otro dispositivo. Sin internet, se guarda aquí y se sube cuando vuelva la conexión.</p>
+        </div>
+      </section>
+
       <section class="form-section">
         <h2>Actividades habituales</h2>
         <p class="label-hint">
@@ -586,6 +618,7 @@
   <script src="js/config.js"></script>
   <script src="js/export.js"></script>
   <script src="js/backup.js"></script>
+  <script src="js/sync.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -18,6 +18,7 @@ function rhSaveList(key, list) {
   try {
     localStorage.setItem(key, JSON.stringify(list));
     rhInvalidarCache();
+    if (typeof rhSyncAlGuardar === "function") rhSyncAlGuardar(key);
     return true;
   } catch (e) {
     console.error("Error al guardar:", e);
@@ -258,6 +259,7 @@ function rhSaveConfig(config) {
   try {
     localStorage.setItem(RH_CONFIG_KEY, JSON.stringify(config));
     rhInvalidarCache();
+    if (typeof rhSyncAlGuardar === "function") rhSyncAlGuardar(RH_CONFIG_KEY);
     return true;
   } catch (e) {
     console.error("Error al guardar configuración:", e);
