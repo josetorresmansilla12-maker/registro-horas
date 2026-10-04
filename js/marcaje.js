@@ -22,11 +22,39 @@ var marcajeRapidoStatus = rhEl("marcaje-rapido-status");
 var marcajeMarcarEntradaBtn = rhEl("marcaje-marcar-entrada-btn");
 var marcajeMarcarSalidaBtn = rhEl("marcaje-marcar-salida-btn");
 var marcajeDeshacerBtn = rhEl("marcaje-deshacer-btn");
+var marcajeActividadesWrap = rhEl("marcaje-actividades");
+var marcajeRapidoActividadesWrap = rhEl("marcaje-rapido-actividades-wrap");
+var marcajeRapidoActividades = rhEl("marcaje-rapido-actividades");
 
 // La jornada del día es una lista de bloques entrada/salida (puede haber más
 // de dos: reunión en la mañana, al mediodía y en la tarde, por ejemplo).
 // Este arreglo es la fuente de la verdad mientras se edita el formulario.
 var rhMarcajeJornadas = [];
+
+// Selector de actividades del formulario (se rearma al cambiar de fecha).
+var rhMarcajeActividadesPicker = null;
+
+function rhMarcajeSetActividades(lista) {
+  rhMarcajeActividadesPicker = rhCrearSelectorActividades(marcajeActividadesWrap, lista, null);
+}
+
+// Copia de un registro con algunos campos cambiados, conservando el resto
+// (actividades, nota, etc.). Quita el formato antiguo bloque1/bloque2 porque
+// desde ahora las jornadas van en `bloques`.
+function rhRegistroActualizado(base, cambios) {
+  var r = Object.assign({}, base || {}, cambios);
+  delete r.bloque1;
+  delete r.bloque2;
+  return r;
+}
+
+function rhMarcajeResumenBloques(bloques) {
+  return bloques.map(function (b) {
+    if (b.entrada && b.salida) return rhFormatBloque12(b);
+    if (b.entrada) return rhFormatHora12(b.entrada) + " – (en curso)";
+    return "—";
+  }).join(" · ");
+}
 
 function rhMarcajeBloqueVacio() {
   return { entrada: "", salida: "" };
@@ -130,12 +158,27 @@ function rhMarcajeShowLicenciaBanner(fecha) {
 function rhMarcajeBlankSetup(fecha) {
   marcajeIdInput.value = "";
   marcajeNota.value = "";
+  rhMarcajeSetActividades([]);
+  marcajeFormTitle.textContent = "Registrar jornada — " + rhFormatDateDisplay(fecha);
+
+  // Si esa fecha ya tiene algo guardado (ej. lo que marcaste hoy con "Marcaje
+  // rápido"), lo que se ingrese aquí se SUMA: se parte con una jornada vacía
+  // en vez del horario base, para no duplicar horas sin querer.
+  var existente = rhGetRegistroByFecha(fecha);
+  var bloquesPrevios = existente ? rhRegistroBloques(existente) : [];
+  if (bloquesPrevios.length > 0) {
+    marcajeExistenteBannerText.textContent = "El " + rhFormatDateDisplay(fecha) + " ya tiene: " +
+      rhMarcajeResumenBloques(bloquesPrevios) + ". Lo que guardes aquí se sumará a eso; para cambiarlo usa “Editar” en el historial.";
+    marcajeExistenteBanner.classList.remove("hidden");
+    rhMarcajeSetJornadas([rhMarcajeBloqueVacio()]);
+    return;
+  }
+
   marcajeExistenteBanner.classList.add("hidden");
   var config = rhLoadConfig();
   var base = [config.horarioBase.bloque1];
   if (config.bloque2Activo) base.push(config.horarioBase.bloque2);
   rhMarcajeSetJornadas(base);
-  marcajeFormTitle.textContent = "Registrar jornada — " + rhFormatDateDisplay(fecha);
 }
 
 // Al elegir una fecha: si ya existe un registro se carga para editarlo (y si
@@ -150,6 +193,7 @@ function rhMarcajeLoadFecha(fecha) {
   if (existente) {
     marcajeIdInput.value = existente.id;
     marcajeNota.value = existente.nota || "";
+    rhMarcajeSetActividades(rhRegistroActividades(existente));
     var estadoLabel = rhRegistroEstadoLabel(existente);
     if (estadoLabel) {
       marcajeExistenteBanner.classList.add("hidden");
@@ -158,13 +202,8 @@ function rhMarcajeLoadFecha(fecha) {
     } else {
       var bloquesExistentes = rhRegistroBloques(existente);
       if (bloquesExistentes.length > 0) {
-        var resumen = bloquesExistentes.map(function (b) {
-          if (b.entrada && b.salida) return rhFormatBloque12(b);
-          if (b.entrada && !b.salida) return rhFormatHora12(b.entrada) + " – (en curso)";
-          return "—";
-        }).join(" · ");
         marcajeExistenteBannerText.textContent = "El " + rhFormatDateDisplay(fecha) + " ya tiene jornada(s) registrada(s): " +
-          resumen + ". Se dejó un espacio abajo para sumar una jornada extra — lo ya guardado no se pierde.";
+          rhMarcajeResumenBloques(bloquesExistentes) + ". Se dejó un espacio abajo para sumar una jornada extra — lo ya guardado no se pierde.";
         marcajeExistenteBanner.classList.remove("hidden");
         rhMarcajeSetJornadas(bloquesExistentes.concat([rhMarcajeBloqueVacio()]));
         marcajeFormTitle.textContent = "Sumar jornada extra — " + rhFormatDateDisplay(fecha);
@@ -275,18 +314,65 @@ marcajeForm.addEventListener("submit", function (e) {
     bloques.push({ entrada: b.entrada, salida: b.salida });
   }
 
-  if (bloques.length === 0 && !nota) {
-    rhShowAlert("Ingresa al menos una jornada con horario o una nota antes de guardar.", "error");
+  var actividades = rhMarcajeActividadesPicker ? rhMarcajeActividadesPicker.obtener() : [];
+
+  if (bloques.length === 0 && !nota && actividades.length === 0) {
+    rhShowAlert("Ingresa al menos una jornada con horario, una actividad o una nota antes de guardar.", "error");
     return;
   }
 
-  rhUpsertRegistro({
-    id: marcajeIdInput.value || null,
-    fecha: fecha,
-    bloques: bloques,
-    nota: nota
-  });
-  rhShowAlert("Jornada del " + rhFormatDateDisplay(fecha) + " guardada.", "success");
+  var existente = rhGetRegistroByFecha(fecha);
+  var esEdicion = !!marcajeIdInput.value;
+  var mensajeOk = "Jornada del " + rhFormatDateDisplay(fecha) + " guardada.";
+
+  if (existente && !esEdicion) {
+    // La fecha ya tenía registro y el formulario no se abrió para editarlo
+    // (ej. marcaste la entrada con "Marcaje rápido" y ahora agregas la tarde):
+    // se suma a lo existente en vez de reemplazarlo, para no perder nada.
+    var previos = rhRegistroBloques(existente).filter(function (b) { return b.entrada || b.salida; });
+    var clavesPrevias = previos.map(function (b) { return b.entrada + "-" + b.salida; });
+    var nuevos = bloques.filter(function (b) { return clavesPrevias.indexOf(b.entrada + "-" + b.salida) === -1; });
+    var solapados = nuevos.filter(function (n) {
+      var ni = rhTimeToMinutes(n.entrada), nf = rhTimeToMinutes(n.salida);
+      return previos.some(function (p) {
+        var pi = rhTimeToMinutes(p.entrada), pf = rhTimeToMinutes(p.salida);
+        if (pi === null) return false;
+        if (pf === null) pf = pi + 1;
+        return ni < pf && pi < nf;
+      });
+    });
+
+    var aviso = "El " + rhFormatDateDisplay(fecha) + " ya tiene un registro" +
+      (previos.length ? ": " + rhMarcajeResumenBloques(previos) : "") + ".\n\n";
+    if (nuevos.length) aviso += "Se sumará: " + rhMarcajeResumenBloques(nuevos) + ".\n";
+    if (solapados.length) aviso += "\nOJO: " + rhMarcajeResumenBloques(solapados) + " se cruza con un horario ya guardado y esas horas se contarían dos veces.\n";
+    aviso += "\n¿Sumar a lo ya registrado? (Para cambiar lo anterior usa “Editar” en el historial.)";
+    if (!confirm(aviso)) return;
+
+    var notaPrevia = (existente.nota || "").trim();
+    rhUpsertRegistro(rhRegistroActualizado(existente, {
+      bloques: previos.concat(nuevos).sort(function (a, b) {
+        return (rhTimeToMinutes(a.entrada) || 0) - (rhTimeToMinutes(b.entrada) || 0);
+      }),
+      nota: notaPrevia && nota && notaPrevia !== nota ? notaPrevia + " · " + nota : (notaPrevia || nota),
+      actividades: rhUnirActividades(rhRegistroActividades(existente), actividades),
+      estado: previos.length || nuevos.length ? null : existente.estado
+    }));
+    mensajeOk = "Se sumó a la jornada del " + rhFormatDateDisplay(fecha) + ".";
+  } else {
+    var registro = {
+      id: marcajeIdInput.value || null,
+      fecha: fecha,
+      bloques: bloques,
+      nota: nota,
+      actividades: actividades
+    };
+    // Editar la nota de un día "Aún no contratado" no debe convertirlo en un
+    // día hábil sin horas: se conserva el estado mientras no se agreguen horas.
+    if (bloques.length === 0 && existente && existente.estado) registro.estado = existente.estado;
+    rhUpsertRegistro(registro);
+  }
+  rhShowAlert(mensajeOk, "success");
   rhMarcajeMesActual = rhMonthRange(fecha).start;
   rhMarcajeResetForm();
   renderMarcajeTable();
@@ -300,6 +386,17 @@ function rhNowHHMM() {
   return pad(d.getHours()) + ":" + pad(d.getMinutes());
 }
 
+// Copia de las jornadas ordenadas por hora de entrada, para que "la última
+// marca" sea siempre la más reciente en el tiempo y no la última de la lista
+// (al sumar o editar jornadas el orden guardado puede quedar mezclado).
+function rhBloquesOrdenados(bloques) {
+  return bloques.map(function (b) {
+    return { entrada: b.entrada || "", salida: b.salida || "" };
+  }).sort(function (a, b) {
+    return (rhTimeToMinutes(a.entrada) || 0) - (rhTimeToMinutes(b.entrada) || 0);
+  });
+}
+
 // Bloque abierto de hoy: el último con entrada marcada y sin salida.
 function rhMarcajeBloqueAbiertoHoy(bloques) {
   for (var i = bloques.length - 1; i >= 0; i--) {
@@ -311,7 +408,7 @@ function rhMarcajeBloqueAbiertoHoy(bloques) {
 function rhMarcajeRenderRapidoStatus() {
   var hoy = rhTodayISO();
   var registroHoy = rhGetRegistroByFecha(hoy);
-  var bloquesHoy = registroHoy ? rhRegistroBloques(registroHoy) : [];
+  var bloquesHoy = rhBloquesOrdenados(registroHoy ? rhRegistroBloques(registroHoy) : []);
   var abierto = rhMarcajeBloqueAbiertoHoy(bloquesHoy);
 
   if (abierto) {
@@ -342,6 +439,24 @@ function rhMarcajeRenderRapidoStatus() {
   } else {
     marcajeDeshacerBtn.classList.add("hidden");
   }
+
+  // Actividades de hoy: aparecen apenas hay una entrada marcada y se guardan
+  // al tocarlas, sin pasar por el formulario.
+  if (bloquesHoy.length > 0) {
+    marcajeRapidoActividadesWrap.classList.remove("hidden");
+    rhCrearSelectorActividades(marcajeRapidoActividades, rhRegistroActividades(registroHoy), function (lista) {
+      var actual = rhGetRegistroByFecha(hoy);
+      if (!actual) return;
+      rhUpsertRegistro(rhRegistroActualizado(actual, { actividades: lista }));
+      // Si el formulario de abajo está mostrando hoy, se actualiza también
+      // para que al guardarlo no se pierdan las actividades recién elegidas.
+      if (marcajeFechaInput.value === hoy && marcajeIdInput.value) rhMarcajeSetActividades(lista);
+      rhShowAlert("Actividades de hoy guardadas.", "success");
+      renderMarcajeTable();
+    });
+  } else {
+    marcajeRapidoActividadesWrap.classList.add("hidden");
+  }
 }
 
 // Marca la hora actual como entrada o salida del día de hoy, directo sobre el
@@ -350,9 +465,7 @@ function rhMarcajeRenderRapidoStatus() {
 function rhMarcajeMarcarHoraAhora(tipo) {
   var fecha = rhTodayISO();
   var existente = rhGetRegistroByFecha(fecha);
-  var bloques = rhRegistroBloques(existente).map(function (b) {
-    return { entrada: b.entrada || "", salida: b.salida || "" };
-  });
+  var bloques = rhBloquesOrdenados(rhRegistroBloques(existente));
   var hora = rhNowHHMM();
 
   if (tipo === "entrada") {
@@ -361,6 +474,7 @@ function rhMarcajeMarcarHoraAhora(tipo) {
       return;
     }
     bloques.push({ entrada: hora, salida: "" });
+    bloques = rhBloquesOrdenados(bloques);
   } else {
     var abierto = rhMarcajeBloqueAbiertoHoy(bloques);
     if (!abierto) {
@@ -375,13 +489,12 @@ function rhMarcajeMarcarHoraAhora(tipo) {
     abierto.salida = hora;
   }
 
-  rhUpsertRegistro({
-    id: existente ? existente.id : null,
+  rhUpsertRegistro(rhRegistroActualizado(existente, {
     fecha: fecha,
     bloques: bloques,
     nota: existente ? (existente.nota || "") : "",
     estado: null
-  });
+  }));
 
   rhShowAlert((tipo === "entrada" ? "Entrada marcada a las " : "Salida marcada a las ") + rhFormatHora12(hora) + ".", "success");
 
@@ -401,9 +514,7 @@ function rhMarcajeDeshacerUltimaMarca() {
   var fecha = rhTodayISO();
   var existente = rhGetRegistroByFecha(fecha);
   if (!existente) return;
-  var bloques = rhRegistroBloques(existente).map(function (b) {
-    return { entrada: b.entrada || "", salida: b.salida || "" };
-  });
+  var bloques = rhBloquesOrdenados(rhRegistroBloques(existente));
   if (bloques.length === 0) return;
 
   var ultimo = bloques[bloques.length - 1];
@@ -419,10 +530,10 @@ function rhMarcajeDeshacerUltimaMarca() {
     mensaje = "Se deshizo la entrada marcada.";
   }
 
-  if (bloques.length === 0 && !existente.nota) {
+  if (bloques.length === 0 && !existente.nota && rhRegistroActividades(existente).length === 0) {
     rhDeleteRegistro(existente.id);
   } else {
-    rhUpsertRegistro({ id: existente.id, fecha: fecha, bloques: bloques, nota: existente.nota || "", estado: null });
+    rhUpsertRegistro(rhRegistroActualizado(existente, { bloques: bloques, estado: null }));
   }
 
   rhShowAlert(mensaje, "success");
@@ -453,14 +564,45 @@ marcajeMesNextBtn.addEventListener("click", function () {
   renderMarcajeTable();
 });
 
+// Abre una fecha en el formulario de Marcaje para editarla (desde el
+// historial, las estadísticas o el calendario).
+function rhMarcajeAbrirFecha(iso) {
+  rhMarcajeMesActual = rhMonthRange(iso).start;
+  marcajeFechaInput.value = iso;
+  rhMarcajeLoadFecha(iso);
+  if (marcajeIdInput.value) {
+    marcajeCancelBtn.classList.remove("hidden");
+    marcajeSubmitBtn.textContent = "Guardar cambios";
+  }
+  rhActivateTab("marcaje");
+  var titulo = rhEl("marcaje-form-title");
+  window.scrollTo({ top: Math.max(0, titulo.getBoundingClientRect().top + window.scrollY - 70), behavior: "smooth" });
+}
+
+// Celda de nota: las actividades marcadas (como etiquetas) y debajo la nota.
+function rhMarcajeCeldaNota(actividades, nota) {
+  var td = document.createElement("td");
+  td.className = "note-cell";
+  if (actividades.length) td.appendChild(rhEtiquetasActividades(actividades));
+  if (nota || !actividades.length) {
+    var p = document.createElement("span");
+    p.textContent = nota || "—";
+    td.appendChild(p);
+  }
+  return td;
+}
+
 function rhMarcajeBuildRegistroRow(r) {
   var tr = document.createElement("tr");
+  tr.className = rhClaseFilaDia(rhEstadoDia(r.fecha));
 
   var tdFecha = document.createElement("td");
+  tdFecha.className = "celda-fecha";
   tdFecha.textContent = rhFormatDateDisplay(r.fecha);
   tr.appendChild(tdFecha);
 
   var tdDia = document.createElement("td");
+  tdDia.className = "celda-fecha";
   tdDia.textContent = rhDayOfWeekLabel(r.fecha, true);
   tr.appendChild(tdDia);
 
@@ -473,10 +615,7 @@ function rhMarcajeBuildRegistroRow(r) {
   tdTotal.textContent = rhMinutesToHM(rhRegistroMinutes(r));
   tr.appendChild(tdTotal);
 
-  var tdNota = document.createElement("td");
-  tdNota.className = "note-cell";
-  tdNota.textContent = r.nota || "—";
-  tr.appendChild(tdNota);
+  tr.appendChild(rhMarcajeCeldaNota(rhRegistroActividades(r), r.nota));
 
   var tdActions = document.createElement("td");
   tdActions.className = "col-actions";
@@ -487,14 +626,7 @@ function rhMarcajeBuildRegistroRow(r) {
   editBtn.type = "button";
   editBtn.className = "btn btn-small btn-secondary";
   editBtn.textContent = "Editar";
-  editBtn.addEventListener("click", function () {
-    marcajeFechaInput.value = r.fecha;
-    rhMarcajeLoadFecha(r.fecha);
-    marcajeCancelBtn.classList.remove("hidden");
-    marcajeSubmitBtn.textContent = "Guardar cambios";
-    rhActivateTab("marcaje");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  editBtn.addEventListener("click", function () { rhMarcajeAbrirFecha(r.fecha); });
 
   var delBtn = document.createElement("button");
   delBtn.type = "button";
@@ -515,24 +647,25 @@ function rhMarcajeBuildRegistroRow(r) {
   return tr;
 }
 
-// Fila para un día laboral sin registro propio pero cubierto por una
-// licencia (feriado, no convocado, licencia médica, etc.): se resalta en
-// rojo suave para que quede visible de un vistazo que ese día no está
-// simplemente "vacío", sino justificado.
+// Fila para un día hábil sin registro propio pero cubierto por una licencia:
+// feriado en rojo (como en un calendario) y "no convocado" en ámbar, para
+// distinguirlos de un vistazo de los días trabajados y entre sí.
 function rhMarcajeBuildLicenciaRow(fecha, licencia) {
   var tr = document.createElement("tr");
-  tr.className = "row-licencia";
+  tr.className = rhClaseFilaDia(rhEstadoDia(fecha));
 
   var tdFecha = document.createElement("td");
+  tdFecha.className = "celda-fecha";
   tdFecha.textContent = rhFormatDateDisplay(fecha);
   tr.appendChild(tdFecha);
 
   var tdDia = document.createElement("td");
+  tdDia.className = "celda-fecha";
   tdDia.textContent = rhDayOfWeekLabel(fecha, true);
   tr.appendChild(tdDia);
 
   var tdJornadas = document.createElement("td");
-  tdJornadas.className = "jornadas-cell";
+  tdJornadas.className = "jornadas-cell celda-estado";
   tdJornadas.textContent = rhTipoLicenciaLabel(licencia.tipo);
   tr.appendChild(tdJornadas);
 

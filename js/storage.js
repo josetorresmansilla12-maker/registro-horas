@@ -17,6 +17,7 @@ function rhLoadList(key) {
 function rhSaveList(key, list) {
   try {
     localStorage.setItem(key, JSON.stringify(list));
+    rhInvalidarCache();
     return true;
   } catch (e) {
     console.error("Error al guardar:", e);
@@ -27,6 +28,32 @@ function rhSaveList(key, list) {
     }
     return false;
   }
+}
+
+// ---------- Caché de lectura ----------
+//
+// Las estadísticas consultan cientos de días y cada consulta por fecha volvía
+// a leer y parsear todo el localStorage. Se guarda una copia ya parseada que
+// se invalida con cada escritura (o si otra pestaña cambia los datos). Solo
+// la usan las consultas de lectura; rhLoadRegistros() etc. siguen devolviendo
+// una lista nueva que se puede modificar sin riesgo.
+
+var rhCacheVersion = 0;
+var rhCache = {};
+
+function rhInvalidarCache() {
+  rhCacheVersion++;
+}
+
+window.addEventListener("storage", rhInvalidarCache);
+
+function rhCachedList(key) {
+  var c = rhCache[key];
+  if (!c || c.version !== rhCacheVersion) {
+    c = { version: rhCacheVersion, list: rhLoadList(key) };
+    rhCache[key] = c;
+  }
+  return c;
 }
 
 // ---------- Registros diarios ----------
@@ -40,7 +67,14 @@ function rhSaveRegistros(list) {
 }
 
 function rhGetRegistroByFecha(fecha) {
-  return rhLoadRegistros().find(function (r) { return r.fecha === fecha; }) || null;
+  var c = rhCachedList(RH_REGISTROS_KEY);
+  if (!c.porFecha) {
+    c.porFecha = {};
+    c.list.forEach(function (r) {
+      if (!c.porFecha[r.fecha]) c.porFecha[r.fecha] = r;
+    });
+  }
+  return c.porFecha[fecha] || null;
 }
 
 // Crea o reemplaza el registro de una fecha (una sola entrada por día).
@@ -98,7 +132,7 @@ function rhDeleteLicencia(id) {
 }
 
 function rhLicenciaForDate(iso) {
-  return rhLoadLicencias().find(function (l) {
+  return rhCachedList(RH_LICENCIAS_KEY).list.find(function (l) {
     return rhIsDateInRange(iso, l.fechaInicio, l.fechaFin);
   }) || null;
 }
@@ -132,24 +166,29 @@ function rhDiaAjustaMeta(iso) {
 // semana que quede dentro de un rango de licencia (por comodidad al elegir
 // las fechas) no se muestre como "No convocado"/"Feriado" sin necesidad,
 // ya que de por sí no era un día que tocara trabajar. "" si no aplica nada.
+// Si ese día igual tiene horas trabajadas, no se rotula como "No convocado"
+// o licencia (sería contradictorio en un informe); un feriado trabajado sí
+// conserva su rótulo.
 function rhEstadoOLicenciaLabel(iso) {
-  var estadoLabel = rhRegistroEstadoLabel(rhGetRegistroByFecha(iso));
+  var registro = rhGetRegistroByFecha(iso);
+  var estadoLabel = rhRegistroEstadoLabel(registro);
   if (estadoLabel) return estadoLabel;
   var config = rhLoadConfig();
   var esLaboral = config.diasLaborales.indexOf(rhParseISO(iso).getDay()) !== -1;
   if (!esLaboral) return "";
   var licencia = rhLicenciaForDate(iso);
-  return licencia ? rhTipoLicenciaLabel(licencia.tipo) : "";
+  if (!licencia) return "";
+  if (rhRegistroMinutes(registro) > 0) return licencia.tipo === "feriado" ? "Feriado" : "";
+  return rhTipoLicenciaLabel(licencia.tipo);
 }
 
-// Texto de las jornadas de un día para tablas/informes: usa
-// rhEstadoOLicenciaLabel cuando aplica (para que un feriado o "no convocado"
-// se lean tal cual, no como un simple "—"), y si no muestra los horarios
-// trabajados de ese día.
+// Texto de las jornadas de un día para tablas/informes: los horarios si hubo
+// horas trabajadas; si no, el motivo (feriado, "no convocado", licencia…) en
+// vez de un simple "—".
 function rhFormatJornadasDia(iso) {
-  var etiqueta = rhEstadoOLicenciaLabel(iso);
-  if (etiqueta) return etiqueta;
-  return rhFormatJornadasRegistro(rhGetRegistroByFecha(iso));
+  var registro = rhGetRegistroByFecha(iso);
+  if (rhRegistroMinutes(registro) > 0) return rhFormatJornadasRegistro(registro);
+  return rhEstadoOLicenciaLabel(iso) || rhFormatJornadasRegistro(registro);
 }
 
 // ---------- Proyectos / funciones asignadas ----------
@@ -185,11 +224,17 @@ function rhDeleteProyecto(id) {
 
 // ---------- Configuración ----------
 
+// Devuelve la configuración (cacheada hasta la próxima escritura): tratarla
+// como solo lectura; para cambiarla, armar un objeto nuevo y rhSaveConfig.
+var rhConfigCache = null;
+
 function rhLoadConfig() {
+  if (rhConfigCache && rhConfigCache.version === rhCacheVersion) return rhConfigCache.config;
+  var merged;
   try {
     var raw = localStorage.getItem(RH_CONFIG_KEY);
     var parsed = raw ? JSON.parse(raw) : {};
-    var merged = Object.assign({}, RH_CONFIG_DEFAULT, parsed);
+    merged = Object.assign({}, RH_CONFIG_DEFAULT, parsed);
     merged.horarioBase = Object.assign(
       {},
       RH_CONFIG_DEFAULT.horarioBase,
@@ -198,16 +243,19 @@ function rhLoadConfig() {
     merged.horarioBase.bloque1 = Object.assign({}, RH_CONFIG_DEFAULT.horarioBase.bloque1, (parsed.horarioBase || {}).bloque1 || {});
     merged.horarioBase.bloque2 = Object.assign({}, RH_CONFIG_DEFAULT.horarioBase.bloque2, (parsed.horarioBase || {}).bloque2 || {});
     merged.diasLaborales = Array.isArray(parsed.diasLaborales) ? parsed.diasLaborales : RH_CONFIG_DEFAULT.diasLaborales.slice();
-    return merged;
+    merged.actividades = Array.isArray(parsed.actividades) ? parsed.actividades : RH_ACTIVIDADES_DEFAULT.slice();
   } catch (e) {
     console.error("No se pudo leer la configuración:", e);
-    return Object.assign({}, RH_CONFIG_DEFAULT);
+    merged = Object.assign({}, RH_CONFIG_DEFAULT, { actividades: RH_ACTIVIDADES_DEFAULT.slice() });
   }
+  rhConfigCache = { version: rhCacheVersion, config: merged };
+  return merged;
 }
 
 function rhSaveConfig(config) {
   try {
     localStorage.setItem(RH_CONFIG_KEY, JSON.stringify(config));
+    rhInvalidarCache();
     return true;
   } catch (e) {
     console.error("Error al guardar configuración:", e);
@@ -216,75 +264,124 @@ function rhSaveConfig(config) {
   }
 }
 
-// Fecha desde la que se calcula el balance acumulado: la configurada a mano,
-// o si no existe, la del primer registro guardado, o si tampoco hay, hoy.
+// Fecha desde la que se cuentan horas esperadas (inicio de tu contrato / del
+// seguimiento): la configurada a mano, o si no existe, la del registro más
+// antiguo, o si tampoco hay, hoy. Se busca el más antiguo en vez de tomar el
+// primero de la lista porque una importación puede dejarla desordenada.
 function rhBalanceStartDate() {
   var config = rhLoadConfig();
   if (config.fechaInicioBalance) return config.fechaInicioBalance;
-  var registros = rhLoadRegistros();
-  if (registros.length > 0) return registros[0].fecha;
-  return rhTodayISO();
+  var c = rhCachedList(RH_REGISTROS_KEY);
+  if (c.inicio === undefined) {
+    c.inicio = c.list.reduce(function (min, r) {
+      return !min || rhCompareISO(r.fecha, min) < 0 ? r.fecha : min;
+    }, null);
+  }
+  return c.inicio || rhTodayISO();
 }
 
 // ---------- Cálculo de horas esperadas / trabajadas ----------
+//
+// Una sola regla, día por día, para todas las vistas (cuota del mes, balance,
+// semanas, informe), así los números siempre coinciden entre sí:
+//  - Cada día hábil "espera" la meta diaria = horas semanales ÷ días
+//    laborales por semana (con tu contrato: 20 h ÷ 5 = 4 h).
+//  - No se espera nada en días no laborales (sábado/domingo), en días
+//    cubiertos por un feriado, "no convocado" o licencia que ajusta la meta,
+//    en días "aún no contratado", ni antes del inicio del seguimiento.
+//  - Toda hora trabajada suma, sin importar el día.
+// La meta de un mes es la suma de lo esperado en sus días: un mes con 22 días
+// hábiles pide 88 h y uno con 21 pide 84 h (antes era un 86,67 h fijo).
 
 function rhMetaDiariaMinutos(config) {
   var diasPorSemana = config.diasLaborales.length || 5;
   return rhHoursToMinutes(config.metaSemanal) / diasPorSemana;
 }
 
+function rhEsDiaLaboral(iso, config) {
+  return (config || rhLoadConfig()).diasLaborales.indexOf(rhParseISO(iso).getDay()) !== -1;
+}
+
+// Minutos que se esperaba trabajar en un día puntual (0 si no correspondía).
+function rhMinutosEsperadosDia(iso, config) {
+  config = config || rhLoadConfig();
+  if (!rhEsDiaLaboral(iso, config)) return 0;
+  if (rhCompareISO(iso, rhBalanceStartDate()) < 0) return 0;
+  if (rhDiaAjustaMeta(iso)) return 0;
+  return rhMetaDiariaMinutos(config);
+}
+
+// Meta (minutos esperados) de un rango completo, incluidos los días futuros.
+function rhMetaEnRango(start, end) {
+  var config = rhLoadConfig();
+  return rhDaysBetweenInclusive(start, end).reduce(function (sum, iso) {
+    return sum + rhMinutosEsperadosDia(iso, config);
+  }, 0);
+}
+
+function rhMetaSemanalAjustada(fechaIso) {
+  var range = rhWeekRange(fechaIso);
+  return rhMetaEnRango(range.start, range.end);
+}
+
+function rhMetaMensualAjustada(mesIso) {
+  var range = rhMonthRange(mesIso);
+  return rhMetaEnRango(range.start, range.end);
+}
+
 // Minutos trabajados en un rango de fechas (según los registros existentes).
 function rhWorkedMinutesInRange(start, end) {
-  var registros = rhLoadRegistros();
   var total = 0;
-  registros.forEach(function (r) {
+  rhCachedList(RH_REGISTROS_KEY).list.forEach(function (r) {
     if (rhIsDateInRange(r.fecha, start, end)) total += rhRegistroMinutes(r);
   });
   return total;
 }
 
-// Balance acumulado: horas trabajadas vs. horas esperadas, día laboral por
-// día laboral, desde la fecha de inicio hasta hoy. Los días con licencia se
-// consideran cumplidos (no restan ni suman al balance).
-function rhCalcularBalance() {
+// Balance de un período (horas trabajadas − horas esperadas) contado solo
+// hasta hoy: lo que aún no pasa todavía no se debe. Hoy se cuenta como
+// esperado solo si ya tiene horas registradas, para no figurar "debiendo" la
+// jornada que está en curso.
+function rhBalancePeriodo(start, end) {
   var config = rhLoadConfig();
-  var metaDiaria = rhMetaDiariaMinutos(config);
-  var start = rhBalanceStartDate();
   var today = rhTodayISO();
-  if (rhCompareISO(start, today) > 0) return { esperadoMin: 0, trabajadoMin: 0, balanceMin: 0 };
+  var inicio = rhBalanceStartDate();
+  var desde = rhCompareISO(start, inicio) < 0 ? inicio : start;
+  var hasta = rhCompareISO(end, today) < 0 ? end : today;
+  var res = { esperadoMin: 0, trabajadoMin: 0, balanceMin: 0, desde: desde, hasta: hasta };
+  if (rhCompareISO(desde, hasta) > 0) return res;
 
-  var dias = rhDaysBetweenInclusive(start, today);
-  var esperadoMin = 0;
-  var trabajadoMin = 0;
-
-  dias.forEach(function (iso) {
-    var d = rhParseISO(iso);
-    var esLaboral = config.diasLaborales.indexOf(d.getDay()) !== -1;
-    if (!esLaboral) return;
-
-    if (rhDiaAjustaMeta(iso)) return; // día justificado / no convocado: no afecta el balance
-
-    esperadoMin += metaDiaria;
-    var registro = rhGetRegistroByFecha(iso);
-    trabajadoMin += registro ? rhRegistroMinutes(registro) : 0;
+  rhDaysBetweenInclusive(desde, hasta).forEach(function (iso) {
+    var trabajado = rhRegistroMinutes(rhGetRegistroByFecha(iso));
+    res.trabajadoMin += trabajado;
+    if (iso === today && trabajado === 0) return;
+    res.esperadoMin += rhMinutosEsperadosDia(iso, config);
   });
-
-  return {
-    esperadoMin: esperadoMin,
-    trabajadoMin: trabajadoMin,
-    balanceMin: trabajadoMin - esperadoMin
-  };
+  res.balanceMin = res.trabajadoMin - res.esperadoMin;
+  return res;
 }
 
-// Cuenta los días (dentro de un rango) cubiertos por una licencia, feriado o
-// "no convocado" (por licencia, o por un registro suelto de antes de que "no
-// convocado" se pudiera marcar por rango de fechas).
+function rhBalanceMes(mesIso) {
+  var range = rhMonthRange(mesIso);
+  return rhBalancePeriodo(range.start, range.end);
+}
+
+// Balance acumulado: desde el inicio del seguimiento hasta hoy. Es igual a la
+// suma de los balances de cada mes.
+function rhCalcularBalance() {
+  return rhBalancePeriodo(rhBalanceStartDate(), rhTodayISO());
+}
+
+// Cuenta los días hábiles (dentro de un rango) cubiertos por una licencia,
+// feriado o "no convocado" (por licencia, o por un registro suelto de antes de
+// que "no convocado" se pudiera marcar por rango de fechas).
 function rhContarDiasEspeciales(start, end) {
-  var dias = rhDaysBetweenInclusive(start, end);
+  var config = rhLoadConfig();
   var feriados = 0;
   var noConvocados = 0;
   var licencias = 0;
-  dias.forEach(function (iso) {
+  rhDaysBetweenInclusive(start, end).forEach(function (iso) {
+    if (!rhEsDiaLaboral(iso, config)) return;
     var l = rhLicenciaForDate(iso);
     if (l) {
       if (l.tipo === "feriado") feriados++;
@@ -297,38 +394,94 @@ function rhContarDiasEspeciales(start, end) {
   return { feriados: feriados, noConvocados: noConvocados, licencias: licencias, total: feriados + noConvocados + licencias };
 }
 
-// Meta ajustada para un rango cualquiera: descuenta la meta diaria por cada
-// día laboral con licencia/feriado (que ajusta meta) dentro del rango, para
-// que esos días no cuenten como incumplimiento. `metaBaseHoras` es la meta
-// completa del período (ej. config.metaSemanal o config.metaMensual).
-function rhMetaAjustadaEnRango(start, end, metaBaseHoras) {
+// ---------- Estado de cada día (tablas, calendario e informe) ----------
+//
+// `clave` agrupa el estado para colores y conteos; `rojo` marca los días que
+// en un calendario irían en rojo (fines de semana y feriados).
+function rhEstadoDia(iso, config, today) {
+  config = config || rhLoadConfig();
+  today = today || rhTodayISO();
+  var registro = rhGetRegistroByFecha(iso);
+  var minutos = rhRegistroMinutes(registro);
+  var laboral = rhEsDiaLaboral(iso, config);
+  var licencia = rhLicenciaForDate(iso);
+  var esFeriado = !!(licencia && licencia.tipo === "feriado");
+  var esNoConvocado = !!(licencia && licencia.tipo === "no_convocado") || rhRegistroEsNoConvocado(registro);
+  var dow = rhParseISO(iso).getDay();
+
+  var e = {
+    iso: iso,
+    registro: registro,
+    minutos: minutos,
+    laboral: laboral,
+    licencia: licencia,
+    rojo: !laboral || esFeriado,
+    feriado: esFeriado,
+    conflicto: false,
+    clave: "",
+    label: ""
+  };
+
+  if (registro && registro.estado === RH_ESTADO_NO_CONTRATADO) {
+    e.clave = "sin_contrato"; e.label = "Aún no contratado";
+  } else if (minutos > 0) {
+    // Cualquier día trabajado cuenta como cumplido, sin importar las horas.
+    e.clave = "cumplido"; e.label = "Cumplido";
+    e.conflicto = !!(laboral && licencia && !esFeriado && rhLicenciaAjustaMeta(licencia));
+  } else if (esFeriado) {
+    e.clave = "feriado"; e.label = "Feriado";
+  } else if (!laboral) {
+    e.clave = "no_laboral"; e.label = dow === 0 || dow === 6 ? "Fin de semana" : "No laboral";
+  } else if (esNoConvocado) {
+    e.clave = "no_convocado"; e.label = "No convocado";
+  } else if (licencia) {
+    e.clave = "licencia"; e.label = rhTipoLicenciaLabel(licencia.tipo);
+  } else if (rhCompareISO(iso, rhBalanceStartDate()) < 0) {
+    e.clave = "fuera"; e.label = "—";
+  } else if (rhCompareISO(iso, today) > 0) {
+    e.clave = "futuro"; e.label = "Próximo";
+  } else if (iso === today) {
+    e.clave = "hoy"; e.label = "Hoy";
+  } else {
+    e.clave = "sin_registro"; e.label = "Sin registro";
+  }
+  return e;
+}
+
+// Clases CSS de la fila de un día en las tablas: fines de semana y feriados en
+// rojo (como en un calendario) y "no convocado"/licencias en ámbar.
+function rhClaseFilaDia(estado) {
+  var clases = [];
+  if (estado.rojo) clases.push("dia-rojo");
+  if (estado.feriado) clases.push("fila-feriado");
+  else if (estado.clave === "no_convocado") clases.push("fila-no-convocado");
+  else if (estado.clave === "licencia") clases.push("fila-licencia");
+  return clases.join(" ");
+}
+
+// Días de un rango que conviene revisar:
+//  - feriados nacionales en día hábil que aún no están marcados,
+//  - días con horas dentro de un período "no convocado"/licencia (ese día no
+//    debería tener horas, o el período no debería incluirlo),
+//  - días hábiles ya pasados sin ningún registro ni justificación.
+function rhDiasPorRevisar(start, end) {
   var config = rhLoadConfig();
-  var metaDiaria = rhMetaDiariaMinutos(config);
-  var dias = rhDaysBetweenInclusive(start, end);
-  var diasLicenciaLaborales = 0;
-  dias.forEach(function (iso) {
-    var d = rhParseISO(iso);
-    var esLaboral = config.diasLaborales.indexOf(d.getDay()) !== -1;
-    if (esLaboral && rhDiaAjustaMeta(iso)) diasLicenciaLaborales++;
+  var today = rhTodayISO();
+  var inicio = rhBalanceStartDate();
+  var items = [];
+  rhDaysBetweenInclusive(start, end).forEach(function (iso) {
+    if (rhCompareISO(iso, inicio) < 0) return;
+    var e = rhEstadoDia(iso, config, today);
+    var nombreFeriado = RH_FERIADOS_CHILE[iso];
+    if (nombreFeriado && e.laboral && !rhDiaAjustaMeta(iso)) {
+      items.push({ tipo: "feriado", iso: iso, nombre: nombreFeriado });
+    } else if (e.conflicto) {
+      items.push({ tipo: "conflicto", iso: iso, minutos: e.minutos, licencia: e.licencia });
+    } else if (e.clave === "sin_registro" && !e.registro) {
+      items.push({ tipo: "sin_registro", iso: iso });
+    }
   });
-  var metaBaseMin = rhHoursToMinutes(metaBaseHoras);
-  var descuentoMin = diasLicenciaLaborales * metaDiaria;
-  return Math.max(0, metaBaseMin - descuentoMin);
-}
-
-// Meta semanal ajustada para la semana que contiene `fechaIso`.
-function rhMetaSemanalAjustada(fechaIso) {
-  var config = rhLoadConfig();
-  var range = rhWeekRange(fechaIso);
-  return rhMetaAjustadaEnRango(range.start, range.end, config.metaSemanal);
-}
-
-// Meta mensual ajustada: descuenta la meta diaria por cada día laboral con
-// licencia dentro del mes, para que esos días no cuenten como incumplimiento.
-function rhMetaMensualAjustada(mesIso) {
-  var config = rhLoadConfig();
-  var range = rhMonthRange(mesIso);
-  return rhMetaAjustadaEnRango(range.start, range.end, config.metaMensual);
+  return items;
 }
 
 // ---------- Papelera (registros/licencias/proyectos eliminados) ----------

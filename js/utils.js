@@ -155,6 +155,13 @@ function rhRegistroExcluyeMeta(registro) {
   return !!rhRegistroEstadoLabel(registro);
 }
 
+// Actividades marcadas en una jornada (nombres, incluidas las escritas en
+// "Otro"). [] si el registro es antiguo o no tiene ninguna.
+function rhRegistroActividades(registro) {
+  if (!registro || !Array.isArray(registro.actividades)) return [];
+  return registro.actividades.filter(function (a) { return typeof a === "string" && a.trim(); });
+}
+
 function rhRegistroMinutes(registro) {
   if (!registro) return 0;
   return rhRegistroBloques(registro).reduce(function (sum, b) {

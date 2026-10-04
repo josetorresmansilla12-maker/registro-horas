@@ -67,6 +67,44 @@ function rhLicenciaPrefillNoConvocado(fecha) {
 
 licenciaCancelBtn.addEventListener("click", rhLicenciaResetForm);
 
+// ---------- Feriados nacionales de Chile ----------
+
+// Feriados del año que caen en día hábil, desde el inicio del seguimiento, y
+// que todavía no están cubiertos por un feriado/licencia.
+function rhFeriadosChilePendientes(anio) {
+  var config = rhLoadConfig();
+  var inicio = rhBalanceStartDate();
+  return Object.keys(RH_FERIADOS_CHILE).filter(function (iso) {
+    return iso.slice(0, 4) === String(anio) &&
+      rhCompareISO(iso, inicio) >= 0 &&
+      rhEsDiaLaboral(iso, config) &&
+      !rhDiaAjustaMeta(iso);
+  }).sort();
+}
+
+rhEl("feriados-chile-btn").addEventListener("click", function () {
+  var anio = rhParseISO(rhTodayISO()).getFullYear();
+  var conDatos = Object.keys(RH_FERIADOS_CHILE).some(function (iso) { return iso.slice(0, 4) === String(anio); });
+  if (!conDatos) {
+    rhShowAlert("Todavía no tengo cargados los feriados de " + anio + ". Agrégalos a mano con el formulario.", "error");
+    return;
+  }
+  var pendientes = rhFeriadosChilePendientes(anio);
+  if (pendientes.length === 0) {
+    rhShowAlert("Ya tienes marcados todos los feriados de " + anio + " que caen en días hábiles.", "success");
+    return;
+  }
+  var detalle = pendientes.map(function (iso) {
+    return "• " + rhDayOfWeekLabel(iso, true) + " " + rhFormatDateDisplay(iso) + " — " + RH_FERIADOS_CHILE[iso];
+  }).join("\n");
+  if (!confirm("Se marcarán como feriado (" + pendientes.length + "):\n\n" + detalle + "\n\n¿Agregarlos?")) return;
+  pendientes.forEach(function (iso) {
+    rhUpsertLicencia({ id: null, fechaInicio: iso, fechaFin: iso, tipo: "feriado", detalle: RH_FERIADOS_CHILE[iso], ajustaMeta: true });
+  });
+  renderLicencias();
+  rhShowAlert("Se agregaron " + pendientes.length + " feriado(s) de " + anio + ".", "success");
+});
+
 licenciaForm.addEventListener("submit", function (e) {
   e.preventDefault();
   licenciaErrorMsg.textContent = "";
@@ -101,6 +139,8 @@ function renderLicencias() {
 
   licencias.forEach(function (l) {
     var tr = document.createElement("tr");
+    if (l.tipo === "feriado") tr.className = "fila-feriado dia-rojo";
+    else if (l.tipo === "no_convocado") tr.className = "fila-no-convocado";
 
     var tdInicio = document.createElement("td");
     tdInicio.textContent = rhFormatDateDisplay(l.fechaInicio);

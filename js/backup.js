@@ -101,19 +101,32 @@ rhEl("import-file-input").addEventListener("change", function (e) {
       nuevosRegistros.forEach(function (r) { r.id = rhUid(); });
       var omitidos = importedRegistros.length - nuevosRegistros.length;
 
-      // Licencias y proyectos: no son únicos por fecha, se agregan todos
-      // (con id nuevo si colisiona con uno existente).
+      // Licencias: se omiten las que ya existen (mismo id, o mismo rango y
+      // tipo) para que reimportar el mismo respaldo no las duplique.
+      var existingLicencias = rhLoadLicencias();
       var existingLicenciaIds = {};
-      rhLoadLicencias().forEach(function (l) { existingLicenciaIds[l.id] = true; });
-      importedLicencias.forEach(function (l) { if (!l.id || existingLicenciaIds[l.id]) l.id = rhUid(); });
+      var existingLicenciaClaves = {};
+      function claveLicencia(l) { return l.fechaInicio + "|" + l.fechaFin + "|" + l.tipo; }
+      existingLicencias.forEach(function (l) {
+        existingLicenciaIds[l.id] = true;
+        existingLicenciaClaves[claveLicencia(l)] = true;
+      });
+      importedLicencias = importedLicencias.filter(function (l) {
+        return !(l.id && existingLicenciaIds[l.id]) && !existingLicenciaClaves[claveLicencia(l)];
+      });
+      importedLicencias.forEach(function (l) { if (!l.id) l.id = rhUid(); });
 
+      // Proyectos: no son únicos por fecha, se agregan todos (con id nuevo si
+      // colisiona con uno existente).
       var existingProyectoIds = {};
       rhLoadProyectos().forEach(function (p) { existingProyectoIds[p.id] = true; });
       importedProyectos.forEach(function (p) { if (!p.id || existingProyectoIds[p.id]) p.id = rhUid(); });
 
       rhPendingImport = {
-        mergedRegistros: existingRegistros.concat(nuevosRegistros),
-        mergedLicencias: rhLoadLicencias().concat(importedLicencias),
+        mergedRegistros: existingRegistros.concat(nuevosRegistros).sort(function (a, b) {
+          return rhCompareISO(a.fecha, b.fecha);
+        }),
+        mergedLicencias: existingLicencias.concat(importedLicencias),
         mergedProyectos: rhLoadProyectos().concat(importedProyectos),
         config: importedConfig,
         counts: {

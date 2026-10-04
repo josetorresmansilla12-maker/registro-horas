@@ -23,22 +23,76 @@ var RH_PAPELERA_DIAS = 30;
 var RH_ESTADO_NO_CONVOCADO = "no_convocado";
 var RH_ESTADO_NO_CONTRATADO = "no_contratado";
 
+// Actividades habituales que se marcan con un toque en cada jornada
+// (editables en Configuración). Se guardan en el registro por su nombre, así
+// que cambiar esta lista nunca altera lo ya registrado.
+var RH_ACTIVIDADES_DEFAULT = [
+  "Ir a talleres vocacionales Kuder",
+  "Aplicaciones de talleres vocacionales Kuder",
+  "Ir a la oficina",
+  "Hacer home office",
+  "Ensayos PAES"
+];
+
 // ---------- Configuración por defecto ----------
 //
 // Refleja el contrato inicial del usuario: 09:00 a 13:00, un solo bloque,
 // jornada de lunes a viernes. Todo esto es editable desde Configuración
 // para cuando el contrato cambie (jornada completa, bloque de tarde, etc).
+//
+// La meta de cada mes NO es un número fijo: se calcula día a día (horas
+// semanales ÷ días laborales = horas por día hábil) sobre los días hábiles
+// reales de ese mes. `metaMensual` queda solo para leer respaldos antiguos.
 
 var RH_CONFIG_DEFAULT = {
   metaSemanal: 20,
-  metaMensual: 86.67, // 20h/semana * 52/12 semanas promedio por mes
+  metaMensual: 86.67,
   horarioBase: {
     bloque1: { entrada: "09:00", salida: "13:00" },
     bloque2: { entrada: "14:00", salida: "18:00" }
   },
   bloque2Activo: false,
   diasLaborales: [1, 2, 3, 4, 5], // 0=domingo ... 6=sábado
-  fechaInicioBalance: null // se autocompleta con el primer registro
+  fechaInicioBalance: null, // se autocompleta con el primer registro
+  actividades: RH_ACTIVIDADES_DEFAULT.slice()
+};
+
+// Feriados nacionales de Chile, para sugerir marcarlos cuando caen en un día
+// hábil. Los que la ley traslada a lunes (San Pedro y San Pablo, Encuentro de
+// Dos Mundos) ya vienen en su fecha trasladada.
+var RH_FERIADOS_CHILE = {
+  "2026-01-01": "Año Nuevo",
+  "2026-04-03": "Viernes Santo",
+  "2026-04-04": "Sábado Santo",
+  "2026-05-01": "Día del Trabajo",
+  "2026-05-21": "Día de las Glorias Navales",
+  "2026-06-21": "Día de los Pueblos Indígenas",
+  "2026-06-29": "San Pedro y San Pablo",
+  "2026-07-16": "Virgen del Carmen",
+  "2026-08-15": "Asunción de la Virgen",
+  "2026-09-18": "Independencia Nacional",
+  "2026-09-19": "Glorias del Ejército",
+  "2026-10-12": "Encuentro de Dos Mundos",
+  "2026-10-31": "Día de las Iglesias Evangélicas",
+  "2026-11-01": "Día de Todos los Santos",
+  "2026-12-08": "Inmaculada Concepción",
+  "2026-12-25": "Navidad",
+  "2027-01-01": "Año Nuevo",
+  "2027-03-26": "Viernes Santo",
+  "2027-03-27": "Sábado Santo",
+  "2027-05-01": "Día del Trabajo",
+  "2027-05-21": "Día de las Glorias Navales",
+  "2027-06-21": "Día de los Pueblos Indígenas",
+  "2027-06-28": "San Pedro y San Pablo",
+  "2027-07-16": "Virgen del Carmen",
+  "2027-08-15": "Asunción de la Virgen",
+  "2027-09-18": "Independencia Nacional",
+  "2027-09-19": "Glorias del Ejército",
+  "2027-10-11": "Encuentro de Dos Mundos",
+  "2027-10-31": "Día de las Iglesias Evangélicas",
+  "2027-11-01": "Día de Todos los Santos",
+  "2027-12-08": "Inmaculada Concepción",
+  "2027-12-25": "Navidad"
 };
 
 var RH_TIPOS_LICENCIA = [

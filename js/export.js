@@ -33,6 +33,15 @@ function rhObservacionesParaFecha(iso) {
   return texto;
 }
 
+// "Actividad 1; Actividad 2 — nota" (lo que haya).
+function rhResumenActividadDia(registro) {
+  if (!registro) return "";
+  var acts = rhRegistroActividades(registro).join("; ");
+  var nota = (registro.nota || "").trim();
+  if (acts && nota) return acts + " — " + nota;
+  return acts || nota;
+}
+
 function rhBuildRegistroRows(start, end) {
   var header = [
     "Fecha", "Día de la semana", "Jornadas (horarios)",
@@ -54,7 +63,7 @@ function rhBuildRegistroRows(start, end) {
       rhDayOfWeekLabel(iso, false),
       jornadas,
       rhMinutesToDecimal(minutos),
-      registro ? (registro.nota || "") : "",
+      rhResumenActividadDia(registro),
       rhObservacionesParaFecha(iso)
     ]);
   });
@@ -81,7 +90,7 @@ function rhBuildInformeRows(start, end) {
     var registro = rhGetRegistroByFecha(iso);
     var minutos = rhRegistroMinutes(registro);
     totalMin += minutos;
-    var nota = registro ? (registro.nota || "") : "";
+    var nota = rhResumenActividadDia(registro);
     var estadoLabel = rhEstadoOLicenciaLabel(iso);
     if (estadoLabel) {
       nota = nota ? estadoLabel + " · " + nota : estadoLabel;

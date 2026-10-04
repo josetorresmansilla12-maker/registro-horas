@@ -91,9 +91,11 @@ function renderInforme() {
   var monthRange = rhMonthRange(hoy);
   var metaMesMin = rhMetaMensualAjustada(hoy);
   var trabajadoMesMin = rhWorkedMinutesInRange(monthRange.start, monthRange.end);
+  var desglose = rhStatsDesgloseCuota(monthRange);
   rhEl("informe-meta-mes-value").textContent = rhMinutesToHM(metaMesMin);
   rhEl("informe-meta-mes-sub").textContent = RH_MESES[rhParseISO(hoy).getMonth()] + " " + rhParseISO(hoy).getFullYear() +
-    " · meta ajustada por licencias/feriados";
+    " · " + desglose.conMeta + " días hábiles × " + rhMinutesToHM(rhMetaDiariaMinutos(rhLoadConfig())).replace(" 00m", "") +
+    " (sin feriados ni licencias)";
   rhEl("informe-trabajado-mes-value").textContent = rhMinutesToHM(trabajadoMesMin);
   rhEl("informe-trabajado-mes-sub").textContent = "Al " + rhFormatDateDisplay(hoy);
 
@@ -108,6 +110,7 @@ function renderInforme() {
 
   var dias = rhDaysBetweenInclusive(inicio, fin);
   var totalMin = 0;
+  var config = rhLoadConfig();
 
   dias.forEach(function (iso) {
     var registro = rhGetRegistroByFecha(iso);
@@ -115,18 +118,30 @@ function renderInforme() {
     totalMin += minTotal;
 
     var tr = document.createElement("tr");
+    tr.className = rhClaseFilaDia(rhEstadoDia(iso, config, hoy));
 
     var tdDia = document.createElement("td");
+    tdDia.className = "celda-fecha";
     tdDia.textContent = rhDayOfWeekLabel(iso, true);
     tr.appendChild(tdDia);
 
     var tdFecha = document.createElement("td");
+    tdFecha.className = "celda-fecha";
     tdFecha.textContent = rhFormatDateDisplay(iso);
     tr.appendChild(tdFecha);
 
     var tdJornadas = document.createElement("td");
     tdJornadas.className = "jornadas-cell";
-    tdJornadas.textContent = rhFormatJornadasDia(iso);
+    var horario = document.createElement("span");
+    horario.textContent = rhFormatJornadasDia(iso);
+    tdJornadas.appendChild(horario);
+    var actividades = rhRegistroActividades(registro);
+    if (actividades.length) {
+      var acts = document.createElement("span");
+      acts.className = "informe-actividades";
+      acts.textContent = actividades.join(" · ");
+      tdJornadas.appendChild(acts);
+    }
     tr.appendChild(tdJornadas);
 
     var tdTotal = document.createElement("td");

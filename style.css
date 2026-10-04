@@ -78,19 +78,33 @@ body {
   padding: 0 16px;
 }
 
+/* Pestañas: una sola fila que se desliza de lado y queda fija arriba al
+   bajar, para cambiar de pestaña sin tener que volver al inicio. */
 .tabs {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 16px 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--color-bg);
+  box-shadow: 0 1px 0 var(--color-border);
+  padding: 8px max(16px, calc((100% - 900px) / 2 + 16px)) 0;
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
   border: none;
   background: transparent;
-  padding: 10px 18px;
+  padding: 10px 14px;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -407,21 +421,6 @@ body {
   background: var(--color-tint);
 }
 
-/* Fila de un día cubierto por una licencia/feriado sin registro propio
-   (ver rhMarcajeBuildLicenciaRow): rojo suave para distinguirla de un
-   vistazo de los días trabajados. */
-.data-table tbody tr.row-licencia {
-  background: #fbeae8;
-}
-
-.data-table tbody tr.row-licencia td {
-  color: var(--color-danger-dark);
-}
-
-.data-table tbody tr.row-licencia:hover {
-  background: #f7dcd9;
-}
-
 .data-table .col-actions {
   text-align: right;
   white-space: nowrap;
@@ -497,10 +496,6 @@ body {
   justify-content: center;
 }
 
-.balance-card {
-  justify-content: center;
-}
-
 /* ---- Tarjeta principal: cuota mensual ---- */
 
 .stat-hero {
@@ -554,6 +549,7 @@ body {
 .hero-figure strong {
   font-size: 1.35rem;
   color: var(--color-primary-dark);
+  white-space: nowrap;
 }
 
 .hero-figure-done strong {
@@ -626,11 +622,6 @@ body {
   color: var(--color-success);
 }
 
-.balance-value {
-  font-size: 1.8rem;
-  font-weight: 800;
-}
-
 .balance-tag {
   padding: 4px 12px;
   border-radius: 999px;
@@ -658,36 +649,6 @@ body {
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 600;
-}
-
-.status-pill.ok {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.status-pill.pendiente {
-  background: var(--color-tint);
-  color: var(--color-text-muted);
-}
-
-.status-pill.licencia {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.status-pill.futuro {
-  background: var(--color-tint);
-  color: var(--color-text-muted);
-}
-
-.status-pill.no-laboral {
-  background: #fbe4e2;
-  color: var(--color-danger-dark);
-}
-
-.status-pill.sin-contrato {
-  background: var(--color-tint);
-  color: var(--color-text-muted);
 }
 
 /* ---------- Configuración ---------- */
@@ -736,67 +697,6 @@ body {
 
 .danger-zone h2 {
   color: var(--color-danger-dark);
-}
-
-/* ---------- Acordeón de semanas (Estadísticas) ---------- */
-
-.week-group {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  margin-top: 12px;
-  overflow: hidden;
-}
-
-.week-group summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  background: var(--color-tint);
-}
-
-.week-group summary::-webkit-details-marker {
-  display: none;
-}
-
-.week-group summary::marker {
-  display: none;
-  content: "";
-}
-
-.week-group summary::before {
-  content: "▸";
-  margin-right: 8px;
-  display: inline-block;
-  transition: transform 0.15s ease;
-  color: var(--color-text-muted);
-}
-
-.week-group[open] summary::before {
-  transform: rotate(90deg);
-}
-
-.week-group-title {
-  font-weight: 700;
-  flex: 1 1 auto;
-}
-
-.week-group-meta {
-  font-weight: 600;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-}
-
-.week-group .table-wrap {
-  padding: 0 16px 16px;
-}
-
-.week-group .data-table {
-  margin: 0;
 }
 
 /* ---------- Modal ---------- */
@@ -875,11 +775,46 @@ body {
 
 @media (max-width: 640px) {
   .container {
-    padding: 16px 12px 48px;
+    padding: 14px 12px 80px;
   }
   .form-section,
   .list-section {
     padding: 16px;
+    margin-bottom: 16px;
+  }
+  /* Encabezado compacto: en el teléfono el contenido importa más que el título. */
+  .app-header {
+    padding: 14px 12px;
+  }
+  .app-header h1 {
+    font-size: 1.25rem;
+  }
+  .subtitle,
+  .label-largo {
+    display: none;
+  }
+  .header-actions {
+    margin-top: 10px;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .btn-header {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 0.85rem;
+    justify-content: center;
+    text-align: center;
+  }
+  .tab-btn {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+  .data-table {
+    font-size: 0.86rem;
+  }
+  .data-table tbody td,
+  .data-table thead th {
+    padding: 9px 8px;
   }
 }
 
@@ -1022,10 +957,883 @@ body {
   font-size: 0.92rem;
 }
 
+/* ---------- Avisos flotantes (toasts) ---------- */
+
+.app-toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 24px));
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.app-toasts .app-alert {
+  margin-top: 0;
+  box-shadow: 0 6px 24px rgba(20, 35, 65, 0.18);
+  pointer-events: auto;
+  animation: toast-entra 0.18s ease-out;
+}
+
+@keyframes toast-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn-rojo {
+  background: #fbe4e2;
+  color: var(--color-danger-dark);
+}
+
+.btn-rojo:hover {
+  background: #f6d2ce;
+}
+
+.field-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.texto-rojo {
+  color: var(--color-danger-dark);
+}
+
+/* ---------- Actividades (chips de selección múltiple) ---------- */
+
+.actividades-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.25;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.chip::before {
+  content: "+ ";
+  color: var(--color-text-muted);
+}
+
+.chip.activo {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.chip.activo::before {
+  content: "✓ ";
+  color: #fff;
+}
+
+.actividad-otro input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 1rem;
+  background: #f7f9fd;
+}
+
+.marcaje-rapido-actividades {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px dashed var(--color-border);
+  padding-top: 12px;
+}
+
+.actividades-titulo {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.tags-actividades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.tag-actividad {
+  background: var(--color-tint);
+  color: var(--color-primary-dark);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.informe-actividades {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.actividades-config {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.actividades-config li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 10px 8px 14px;
+}
+
+.actividades-config input,
+#config-actividad-nueva {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 1rem;
+  background: #f7f9fd;
+}
+
+.config-explica {
+  margin: -4px 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  background: var(--color-tint);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* ---------- Colores de los días (tablas) ---------- */
+/* Fines de semana y feriados en rojo, como en un calendario; "no convocado"
+   y licencias en ámbar para distinguirlos de un vistazo. */
+
+.data-table tr.dia-rojo .celda-fecha {
+  color: var(--color-danger-dark);
+  font-weight: 700;
+}
+
+.data-table tbody tr.fila-feriado {
+  background: #fbe4e2;
+}
+
+.data-table tbody tr.fila-feriado td {
+  color: var(--color-danger-dark);
+}
+
+.data-table tbody tr.fila-feriado:hover {
+  background: #f7d6d2;
+}
+
+.data-table tbody tr.fila-no-convocado,
+.data-table tbody tr.fila-licencia {
+  background: #fdf3dc;
+}
+
+.data-table tbody tr.fila-no-convocado td,
+.data-table tbody tr.fila-licencia td {
+  color: #8a5a00;
+}
+
+.data-table tbody tr.fila-no-convocado:hover,
+.data-table tbody tr.fila-licencia:hover {
+  background: #faeac4;
+}
+
+.celda-estado {
+  font-weight: 700;
+}
+
+/* Pastillas de estado por tipo de día (Estadísticas e Informe). */
+.status-pill {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.status-pill.est-cumplido { background: var(--color-success-bg); color: var(--color-success); }
+.status-pill.est-feriado { background: #fbe4e2; color: var(--color-danger-dark); }
+.status-pill.est-no_laboral { background: #fbe4e2; color: var(--color-danger-dark); }
+.status-pill.est-no_convocado,
+.status-pill.est-licencia { background: var(--color-warning-bg); color: #8a5a00; }
+.status-pill.est-sin_registro { background: #fff; color: var(--color-warning); border: 1px dashed #e0b45a; }
+.status-pill.est-hoy { background: var(--color-accent); color: var(--color-primary-dark); }
+.status-pill.est-futuro,
+.status-pill.est-fuera,
+.status-pill.est-sin_contrato { background: var(--color-tint); color: var(--color-text-muted); }
+
+/* ---------- Estadísticas: selector de mes ---------- */
+
+.mes-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.mes-selector-btn {
+  width: 44px;
+  height: 40px;
+  font-size: 1rem;
+}
+
+.mes-selector-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.mes-selector-nombre {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+/* ---------- Estadísticas: cuota ---------- */
+
+#tab-estadisticas .stat-hero {
+  margin-bottom: 16px;
+}
+
+.hero-explica {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.hero-figure-extra strong {
+  color: var(--color-success);
+}
+
+/* ---------- Estadísticas: por revisar ---------- */
+
+.revisar-section {
+  border-left: 4px solid var(--color-warning);
+}
+
+.revisar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.revisar-item {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.revisar-item.revisar-feriado {
+  border-color: #f0c3bd;
+  background: #fdf1ef;
+}
+
+.revisar-item.revisar-conflicto {
+  border-color: #ecd29a;
+  background: #fffaf0;
+}
+
+.revisar-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.88rem;
+}
+
+.revisar-acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Estadísticas: balance ---------- */
+
+.balance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.balance-donut-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.donut {
+  display: flex;
+  justify-content: center;
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 12px 0 4px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ley-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.ley-cumplido { background: #2854a6; }
+.ley-favor { background: #1f7a5c; }
+.ley-contra { background: #c0453c; }
+
+.subseccion {
+  font-size: 0.98rem;
+  margin: 20px 0 10px;
+}
+
+.balance-historia {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hist-fila {
+  display: grid;
+  grid-template-columns: 58px 1fr 82px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 6px 4px;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hist-fila.elegido {
+  border-color: var(--color-accent);
+  background: var(--color-tint);
+}
+
+.hist-mes {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.hist-barra {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 14px;
+}
+
+.hist-mitad {
+  display: flex;
+  align-items: stretch;
+}
+
+.hist-neg {
+  justify-content: flex-end;
+  border-right: 2px solid var(--color-text-muted);
+}
+
+.hist-mitad i {
+  display: block;
+  height: 100%;
+}
+
+.hist-neg i {
+  background: #c0453c;
+  border-radius: 4px 0 0 4px;
+}
+
+.hist-pos i {
+  background: #1f7a5c;
+  border-radius: 0 4px 4px 0;
+}
+
+.hist-valor {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hist-valor.favor { color: var(--color-success); }
+.hist-valor.contra { color: var(--color-danger-dark); }
+.hist-valor.neutro { color: var(--color-text-muted); }
+
+.hist-nota {
+  margin: 4px 0 0;
+}
+
+/* ---------- Control segmentado (Mes / Semana / Día) ---------- */
+
+.segmented {
+  display: inline-flex;
+  background: var(--color-tint);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.segmented-btn {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.segmented-btn.activo {
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  box-shadow: 0 1px 3px rgba(20, 35, 65, 0.15);
+}
+
+/* ---------- Calendario del mes ---------- */
+
+.cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cal-cab {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  padding-bottom: 2px;
+}
+
+.cal-cab.rojo {
+  color: var(--color-danger-dark);
+}
+
+.cal-dia {
+  position: relative;
+  aspect-ratio: 1 / 1.05;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font: inherit;
+  padding: 3px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.cal-num {
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cal-info {
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.1;
+  min-height: 0.75rem;
+}
+
+.cal-dia.rojo .cal-num {
+  color: var(--color-danger-dark);
+}
+
+.cal-dia.est-cumplido { background: var(--color-success-bg); border-color: #b9e0cf; }
+.cal-dia.est-cumplido .cal-info { color: var(--color-success); }
+.cal-dia.est-feriado { background: #fbe4e2; border-color: #f0c3bd; }
+.cal-dia.est-feriado .cal-info { color: var(--color-danger-dark); }
+.cal-dia.est-no_laboral { background: #fdf3f2; border-color: #f6dcd8; }
+.cal-dia.est-no_convocado,
+.cal-dia.est-licencia { background: var(--color-warning-bg); border-color: #ecd29a; }
+.cal-dia.est-no_convocado .cal-info,
+.cal-dia.est-licencia .cal-info { color: #8a5a00; }
+.cal-dia.est-sin_registro { border-style: dashed; border-color: #e0b45a; }
+.cal-dia.est-sin_registro .cal-info { color: var(--color-warning); }
+.cal-dia.est-sin_contrato,
+.cal-dia.est-fuera { background: var(--color-tint); color: var(--color-text-muted); }
+.cal-dia.est-futuro { color: var(--color-text-muted); }
+
+.cal-dia.es-hoy {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.cal-dia.elegido {
+  outline: 3px solid rgba(40, 84, 166, 0.35);
+  outline-offset: 1px;
+}
+
+.cal-alerta {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+
+.cal-vacio {
+  min-height: 44px;
+}
+
+.cal-detalle {
+  margin-top: 12px;
+  border-radius: 8px;
+  background: var(--color-tint);
+  padding: 12px;
+  font-size: 0.88rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.cal-detalle p {
+  margin: 0;
+}
+
+.cal-detalle-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cal-aviso {
+  color: #8a5a00;
+  font-weight: 600;
+}
+
+.cal-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.cal-ley {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-muestra {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  display: inline-block;
+}
+
+.cal-muestra.est-cumplido { background: var(--color-success-bg); border-color: #b9e0cf; }
+.cal-muestra.est-feriado { background: #fbe4e2; border-color: #f0c3bd; }
+.cal-muestra.est-no_laboral { background: #fdf3f2; border-color: #f6dcd8; }
+.cal-muestra.est-no_convocado,
+.cal-muestra.est-licencia { background: var(--color-warning-bg); border-color: #ecd29a; }
+.cal-muestra.est-sin_registro { border-style: dashed; border-color: #e0b45a; }
+.cal-muestra.est-sin_contrato { background: var(--color-tint); }
+
+/* ---------- Semanas ---------- */
+
+.semanas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.semana-fila {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.semana-fila.actual {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary) inset;
+}
+
+.semana-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.semana-rango {
+  flex: 1;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.semana-pie {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.semana-pie strong {
+  color: var(--color-primary-dark);
+}
+
+.progreso {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-tint);
+  overflow: hidden;
+}
+
+.progreso span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.progreso span.completo {
+  background: var(--color-success);
+}
+
+.tabla-dias td {
+  white-space: nowrap;
+}
+
+/* ---------- Más estadísticas ---------- */
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.mini-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mini-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.mini-valor {
+  font-size: 1.15rem;
+  color: var(--color-primary-dark);
+}
+
+.mini-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.mini-card.mini-favor .mini-valor { color: var(--color-success); }
+.mini-card.mini-contra .mini-valor { color: var(--color-danger-dark); }
+
+.barras {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barra-fila {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.barras-actividades .barra-fila {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.barra-etiqueta {
+  font-weight: 700;
+}
+
+.barra-pista {
+  height: 12px;
+  background: var(--color-tint);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra-pista i {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 999px;
+}
+
+.barra-valor {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.barras-actividades .barra-valor {
+  justify-self: end;
+  margin-top: -2px;
+}
+
+@media (max-width: 640px) {
+  .balance-grid {
+    gap: 8px;
+  }
+  .balance-donut-card {
+    padding: 12px 6px;
+  }
+  .stat-hero-body {
+    gap: 12px;
+  }
+  .stat-hero-figures {
+    min-width: 100%;
+  }
+  /* Historial de Marcaje como tarjetas: en una tabla de 6 columnas las notas
+     largas dejaban filas muy altas y había que deslizar de lado. */
+  #marcaje-table thead {
+    display: none;
+  }
+  #marcaje-table,
+  #marcaje-table tbody {
+    display: block;
+  }
+  #marcaje-table tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "fecha dia total"
+      "jornadas jornadas jornadas"
+      "nota nota nota"
+      "acciones acciones acciones";
+    gap: 4px 8px;
+    align-items: baseline;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  #marcaje-table tbody td {
+    display: block;
+    padding: 0;
+    border: none;
+    min-width: 0;
+  }
+  #marcaje-table tbody td:nth-child(1) { grid-area: fecha; font-weight: 700; }
+  #marcaje-table tbody td:nth-child(2) { grid-area: dia; color: var(--color-text-muted); }
+  #marcaje-table tbody td:nth-child(3) { grid-area: jornadas; }
+  #marcaje-table tbody td:nth-child(4) { grid-area: total; font-weight: 800; color: var(--color-primary-dark); }
+  #marcaje-table tbody td:nth-child(5) { grid-area: nota; max-width: none; font-size: 0.84rem; }
+  #marcaje-table tbody td:nth-child(6) { grid-area: acciones; text-align: left; margin-top: 4px; }
+  #marcaje-table tbody tr.dia-rojo td:nth-child(2) { color: var(--color-danger-dark); font-weight: 700; }
+  #informe-table .jornadas-cell {
+    min-width: 112px;
+  }
+  .list-header .segmented {
+    width: 100%;
+  }
+  .list-header .segmented .segmented-btn {
+    flex: 1;
+  }
+  .stat-card {
+    min-width: 0;
+  }
+}
+
 @media print {
   .app-header,
   .tabs,
   .app-alerts,
+  .app-toasts,
   #informe-periodo-section,
   #informe-print-btn {
     display: none !important;

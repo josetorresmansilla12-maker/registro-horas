@@ -15,14 +15,12 @@
     <h1>🕒 Registro de Horas</h1>
     <p class="subtitle">Marcaje diario, estadísticas y control de saldo de horas</p>
     <div class="header-actions">
-      <button type="button" id="open-export-btn" class="btn btn-header">📊 Exportar a Excel</button>
-      <button type="button" id="save-backup-btn" class="btn btn-header">💾 Guardar respaldo (.json)</button>
-      <label for="import-file-input" class="btn btn-header file-label">📂 Importar respaldo (.json)</label>
+      <button type="button" id="open-export-btn" class="btn btn-header">📊 <span class="label-largo">Exportar a </span>Excel</button>
+      <button type="button" id="save-backup-btn" class="btn btn-header">💾 <span class="label-largo">Guardar </span>Respaldo<span class="label-largo"> (.json)</span></button>
+      <label for="import-file-input" class="btn btn-header file-label">📂 Importar<span class="label-largo"> respaldo (.json)</span></label>
       <input type="file" id="import-file-input" accept="application/json" class="hidden" />
     </div>
   </header>
-
-  <div class="app-alerts" id="app-alerts"></div>
 
   <nav class="tabs" id="tabs">
     <button type="button" class="tab-btn active" id="tab-marcaje-btn" data-tab="marcaje">Marcaje</button>
@@ -32,6 +30,9 @@
     <button type="button" class="tab-btn" id="tab-informe-btn" data-tab="informe">Informe</button>
     <button type="button" class="tab-btn" id="tab-config-btn" data-tab="config">Configuración</button>
   </nav>
+
+  <div class="app-alerts" id="app-alerts"></div>
+  <div class="app-toasts" id="app-toasts" aria-live="polite"></div>
 
   <main class="container">
 
@@ -46,6 +47,10 @@
             <button type="button" class="btn btn-secondary" id="marcaje-marcar-salida-btn">🔴 Marcar salida ahora</button>
           </div>
           <button type="button" class="btn btn-secondary btn-small marcaje-rapido-deshacer hidden" id="marcaje-deshacer-btn">↩️ Deshacer última marca</button>
+          <div class="marcaje-rapido-actividades hidden" id="marcaje-rapido-actividades-wrap">
+            <span class="actividades-titulo">¿Qué actividades hiciste hoy? <span class="label-hint">(se guardan al tocarlas)</span></span>
+            <div id="marcaje-rapido-actividades"></div>
+          </div>
           <p class="marcaje-rapido-hint">Marca la hora justo cuando llegues o te vayas de tu trabajo. También puedes ingresar los horarios a mano en el formulario de abajo.</p>
         </div>
       </section>
@@ -79,6 +84,11 @@
           <span class="error-msg" id="error-marcaje-bloques"></span>
           <div class="form-actions">
             <button type="button" class="btn btn-secondary btn-small" id="marcaje-add-jornada-btn">➕ Agregar jornada extra</button>
+          </div>
+
+          <div class="field">
+            <span class="field-label">Actividades del día <span class="label-hint">(puedes marcar varias)</span></span>
+            <div id="marcaje-actividades"></div>
           </div>
 
           <div class="field">
@@ -125,86 +135,105 @@
 
     <!-- ===================== TAB: ESTADÍSTICAS ===================== -->
     <section id="tab-estadisticas" class="tab-panel hidden">
-      <!-- Gráfico principal: cuota mensual (horas + porcentaje) -->
-      <section class="stats-cards">
-        <div class="stat-card stat-hero">
-          <span class="stat-label">Cuota mensual — <span id="stats-hero-mes-nombre">—</span></span>
-          <div class="stat-hero-body">
-            <div class="gauge" id="stats-gauge-mes"></div>
-            <div class="stat-hero-figures">
-              <div class="hero-figure">
-                <span>Debo cumplir</span>
-                <strong id="stats-hero-meta">0h 00m</strong>
-              </div>
-              <div class="hero-figure hero-figure-done">
-                <span>Llevo cumplidas</span>
-                <strong id="stats-hero-trabajado">0h 00m</strong>
-              </div>
-              <div class="hero-figure">
-                <span>Me faltan</span>
-                <strong id="stats-hero-faltan">0h 00m</strong>
-              </div>
+      <!-- Mes a revisar: controla todo lo que se muestra en esta pestaña -->
+      <div class="mes-selector" role="group" aria-label="Mes a revisar">
+        <button type="button" class="btn btn-icon mes-selector-btn" id="stats-mes-prev" aria-label="Mes anterior">◀</button>
+        <div class="mes-selector-centro">
+          <span class="mes-selector-nombre" id="stats-mes-label">—</span>
+          <button type="button" class="btn-link hidden" id="stats-mes-hoy">Volver al mes actual</button>
+        </div>
+        <button type="button" class="btn btn-icon mes-selector-btn" id="stats-mes-next" aria-label="Mes siguiente">▶</button>
+      </div>
+
+      <!-- Gráfico principal: cuota del mes (horas + porcentaje) -->
+      <section class="stat-card stat-hero">
+        <span class="stat-label">Cuota de horas del mes</span>
+        <div class="stat-hero-body">
+          <div class="gauge" id="stats-gauge-mes"></div>
+          <div class="stat-hero-figures">
+            <div class="hero-figure">
+              <span>Debo cumplir</span>
+              <strong id="stats-hero-meta">0h 00m</strong>
+            </div>
+            <div class="hero-figure hero-figure-done">
+              <span>Llevo cumplidas</span>
+              <strong id="stats-hero-trabajado">0h 00m</strong>
+            </div>
+            <div class="hero-figure" id="stats-hero-faltan-fila">
+              <span id="stats-hero-faltan-label">Me faltan</span>
+              <strong id="stats-hero-faltan">0h 00m</strong>
             </div>
           </div>
-          <div class="hero-ritmo" id="stats-hero-ritmo"></div>
         </div>
+        <p class="hero-explica" id="stats-hero-explica"></p>
+        <div class="hero-ritmo" id="stats-hero-ritmo"></div>
       </section>
 
-      <section class="stats-cards">
-        <div class="stat-card">
-          <span class="stat-label">Semana actual <span class="label-hint">(referencia)</span></span>
-          <div class="gauge" id="stats-gauge-semana"></div>
-          <span class="stat-value" id="stats-semana-value">0h / 0h</span>
-          <span class="stat-sub" id="stats-semana-sub"></span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Promedio horas/día <span class="label-hint">(mes actual)</span></span>
-          <span class="stat-value" id="stats-promedio-value">0h 00m</span>
-          <span class="stat-sub" id="stats-promedio-sub"></span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Feriados y licencias <span class="label-hint">(mes actual)</span></span>
-          <span class="stat-value" id="stats-especiales-value">0</span>
-          <span class="stat-sub" id="stats-especiales-sub"></span>
-        </div>
+      <!-- Días que pueden estar afectando el cálculo -->
+      <section class="form-section revisar-section hidden" id="stats-revisar-section">
+        <h2>⚠️ Por revisar <span class="label-hint" id="stats-revisar-count"></span></h2>
+        <p class="label-hint">Estos días pueden estar afectando tu cálculo de horas. Revísalos cuando puedas.</p>
+        <ul class="revisar-list" id="stats-revisar-list"></ul>
       </section>
 
+      <!-- Balance: siempre por mes calendario (del 1 al último día) -->
       <section class="form-section">
         <h2>Balance de horas <span class="label-hint">(solo para ti, no se informa)</span></h2>
-        <p class="label-hint">Trabajas a honorario: cumplir menos horas en una semana no es un problema. Esto es solo una referencia personal.</p>
-        <div class="stats-cards">
-          <div class="stat-card balance-card" id="stats-balance-semana-card">
-            <span class="stat-label">Balance semanal</span>
-            <span class="balance-value" id="stats-balance-semana-value">0h 00m</span>
-            <span class="balance-tag" id="stats-balance-semana-tag">—</span>
-            <span class="stat-sub" id="stats-balance-semana-sub"></span>
-          </div>
-          <div class="stat-card balance-card" id="stats-balance-mes-card">
-            <span class="stat-label">Balance mensual</span>
-            <span class="balance-value" id="stats-balance-mes-value">0h 00m</span>
+        <p class="label-hint" id="stats-balance-explica">Horas trabajadas menos las esperadas, contando hasta hoy.</p>
+        <div class="balance-grid">
+          <div class="balance-donut-card">
+            <span class="stat-label" id="stats-balance-mes-titulo">Balance del mes</span>
+            <div class="donut" id="stats-balance-mes-donut"></div>
             <span class="balance-tag" id="stats-balance-mes-tag">—</span>
             <span class="stat-sub" id="stats-balance-mes-sub"></span>
           </div>
-          <div class="stat-card balance-card" id="stats-balance-card">
-            <span class="stat-label">Balance acumulado <span class="label-hint">(general)</span></span>
-            <span class="balance-value" id="stats-balance-value">0h 00m</span>
-            <span class="balance-tag" id="stats-balance-tag">—</span>
-            <span class="stat-sub" id="stats-balance-sub"></span>
+          <div class="balance-donut-card">
+            <span class="stat-label">Balance acumulado</span>
+            <div class="donut" id="stats-balance-acum-donut"></div>
+            <span class="balance-tag" id="stats-balance-acum-tag">—</span>
+            <span class="stat-sub" id="stats-balance-acum-sub"></span>
           </div>
         </div>
+        <div class="leyenda">
+          <span><i class="ley-color ley-cumplido"></i>Horas esperadas que cumpliste</span>
+          <span><i class="ley-color ley-favor"></i>A tu favor (te deben)</span>
+          <span><i class="ley-color ley-contra"></i>En contra (debes)</span>
+        </div>
+        <h3 class="subseccion">Mes a mes <span class="label-hint">(toca un mes para verlo)</span></h3>
+        <div class="balance-historia" id="stats-balance-historia"></div>
       </section>
 
+      <!-- Asistencia con filtro Mes / Semana / Día -->
       <section class="form-section">
         <div class="list-header">
-          <h2>Asistencia mensual, semana por semana</h2>
-          <div class="month-nav">
-            <button type="button" class="btn btn-icon" id="stats-mes-prev">◀</button>
-            <span id="stats-mes-label">—</span>
-            <button type="button" class="btn btn-icon" id="stats-mes-next">▶</button>
+          <h2>Asistencia</h2>
+          <div class="segmented" id="stats-asistencia-vista" role="tablist" aria-label="Ver asistencia por">
+            <button type="button" class="segmented-btn" data-vista="mes" role="tab">Mes</button>
+            <button type="button" class="segmented-btn" data-vista="semana" role="tab">Semana</button>
+            <button type="button" class="segmented-btn" data-vista="dia" role="tab">Día</button>
           </div>
         </div>
-        <p class="label-hint">Cada semana se guarda plegada aquí abajo a medida que pasa — despliégala para revisar el detalle día por día.</p>
-        <div id="stats-weeks-container"></div>
+        <div id="stats-asistencia-body"></div>
+      </section>
+
+      <!-- Otras estadísticas útiles del mes -->
+      <section class="form-section">
+        <h2>Más estadísticas del mes</h2>
+        <div class="mini-stats" id="stats-mini"></div>
+        <h3 class="subseccion">Horas por día de la semana</h3>
+        <div class="barras" id="stats-dias-semana"></div>
+      </section>
+
+      <!-- Actividades marcadas en el Marcaje -->
+      <section class="form-section">
+        <div class="list-header">
+          <h2>Actividades más frecuentes</h2>
+          <div class="segmented" id="stats-actividades-alcance" aria-label="Período">
+            <button type="button" class="segmented-btn" data-alcance="mes">Este mes</button>
+            <button type="button" class="segmented-btn" data-alcance="todo">Todo</button>
+          </div>
+        </div>
+        <div class="barras" id="stats-actividades"></div>
       </section>
     </section>
 
@@ -242,6 +271,17 @@
             <button type="button" class="btn btn-secondary hidden" id="licencia-cancel-btn">Cancelar edición</button>
           </div>
         </form>
+      </section>
+
+      <section class="form-section">
+        <h2>Feriados nacionales de Chile</h2>
+        <p class="label-hint" id="feriados-chile-hint">
+          Agrega de una vez los feriados del año que caen en días hábiles y que aún no tienes marcados.
+          Si hay un feriado regional o especial, agrégalo arriba a mano.
+        </p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="feriados-chile-btn">📅 Agregar feriados de Chile</button>
+        </div>
       </section>
 
       <section class="list-section">
@@ -374,16 +414,11 @@
       <section class="form-section">
         <h2>Metas de horas</h2>
         <form id="config-form" novalidate>
-          <div class="field-row">
-            <div class="field">
-              <label for="config-meta-semanal">Horas requeridas por semana</label>
-              <input type="number" id="config-meta-semanal" min="0" step="0.5" />
-            </div>
-            <div class="field">
-              <label for="config-meta-mensual">Horas requeridas por mes</label>
-              <input type="number" id="config-meta-mensual" min="0" step="0.5" />
-            </div>
+          <div class="field">
+            <label for="config-meta-semanal">Horas requeridas por semana</label>
+            <input type="number" id="config-meta-semanal" min="0" step="0.5" />
           </div>
+          <p class="config-explica" id="config-meta-explica"></p>
 
           <h2>Horario base</h2>
           <p class="label-hint">Se usa para autocompletar el marcaje de un nuevo día.</p>
@@ -423,9 +458,9 @@
           <h2>Días laborales</h2>
           <div class="dias-laborales" id="config-dias-laborales"></div>
 
-          <h2>Balance</h2>
+          <h2>Inicio del seguimiento</h2>
           <div class="field">
-            <label for="config-fecha-inicio-balance">Calcular balance acumulado desde <span class="label-hint">(opcional, por defecto tu primer registro)</span></label>
+            <label for="config-fecha-inicio-balance">Contar horas esperadas desde <span class="label-hint">(opcional, por defecto tu primer registro)</span></label>
             <input type="date" id="config-fecha-inicio-balance" />
           </div>
 
@@ -433,6 +468,19 @@
             <button type="submit" class="btn btn-primary">Guardar configuración</button>
           </div>
         </form>
+      </section>
+
+      <section class="form-section">
+        <h2>Actividades habituales</h2>
+        <p class="label-hint">
+          Aparecen como botones al registrar tu jornada en Marcaje. Lo que ya registraste no cambia si
+          quitas o agregas actividades aquí.
+        </p>
+        <ul class="actividades-config" id="config-actividades-list"></ul>
+        <div class="field-inline">
+          <input type="text" id="config-actividad-nueva" maxlength="80" placeholder="Nueva actividad (ej: Feria vocacional)" />
+          <button type="button" class="btn btn-secondary" id="config-actividad-agregar">Agregar</button>
+        </div>
       </section>
 
       <section class="form-section">
@@ -523,6 +571,7 @@
   <script src="js/utils.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/alerts.js"></script>
+  <script src="js/actividades.js"></script>
   <script src="js/tabs.js"></script>
   <script src="js/marcaje.js"></script>
   <script src="js/estadisticas.js"></script>
