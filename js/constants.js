@@ -27,12 +27,21 @@ var RH_ESTADO_NO_CONTRATADO = "no_contratado";
 // (editables en Configuración). Se guardan en el registro por su nombre, así
 // que cambiar esta lista nunca altera lo ya registrado.
 var RH_ACTIVIDADES_DEFAULT = [
-  "Ir a talleres vocacionales Kuder",
-  "Aplicaciones de talleres vocacionales Kuder",
-  "Ir a la oficina",
-  "Hacer home office",
+  "Talleres vocacionales Kuder",
+  "Aplicaciones de test vocacionales Kuder",
+  "Oficina",
+  "Home office",
   "Ensayos PAES"
 ];
+
+// Nombres de la versión anterior → nombre actual, para que lo ya registrado
+// con los nombres largos cuente en la misma categoría.
+var RH_ACTIVIDADES_ALIAS = {
+  "Ir a talleres vocacionales Kuder": "Talleres vocacionales Kuder",
+  "Aplicaciones de talleres vocacionales Kuder": "Aplicaciones de test vocacionales Kuder",
+  "Ir a la oficina": "Oficina",
+  "Hacer home office": "Home office"
+};
 
 // ---------- Configuración por defecto ----------
 //

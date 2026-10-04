@@ -95,11 +95,25 @@ rhEl("import-file-input").addEventListener("change", function (e) {
       // Registros: uno por fecha. Si ya existe uno local para esa fecha, se
       // conserva el local — importar nunca pisa un marcaje ya guardado.
       var existingRegistros = rhLoadRegistros();
-      var existingFechas = {};
-      existingRegistros.forEach(function (r) { existingFechas[r.fecha] = true; });
-      var nuevosRegistros = importedRegistros.filter(function (r) { return !existingFechas[r.fecha]; });
+      var existingPorFecha = {};
+      existingRegistros.forEach(function (r) { existingPorFecha[r.fecha] = r; });
+      var nuevosRegistros = importedRegistros.filter(function (r) { return !existingPorFecha[r.fecha]; });
       nuevosRegistros.forEach(function (r) { r.id = rhUid(); });
       var omitidos = importedRegistros.length - nuevosRegistros.length;
+
+      // Excepción: si la jornada ya existe aquí, solo se le agregan las
+      // actividades que traiga el respaldo (sin tocar horas ni notas). Sirve
+      // para pasar a este teléfono las categorías asignadas en otro lado.
+      var conActividades = 0;
+      existingRegistros = existingRegistros.map(function (local) {
+        var importado = importedRegistros.find(function (r) { return r.fecha === local.fecha; });
+        if (!importado) return local;
+        var previas = rhRegistroActividades(local);
+        var unidas = rhUnirActividades(previas, rhRegistroActividades(importado));
+        if (unidas.length === previas.length) return local;
+        conActividades++;
+        return Object.assign({}, local, { actividades: unidas });
+      });
 
       // Licencias: se omiten las que ya existen (mismo id, o mismo rango y
       // tipo) para que reimportar el mismo respaldo no las duplique.
@@ -131,6 +145,7 @@ rhEl("import-file-input").addEventListener("change", function (e) {
         config: importedConfig,
         counts: {
           registros: nuevosRegistros.length,
+          conActividades: conActividades,
           omitidos: omitidos,
           licencias: importedLicencias.length,
           proyectos: importedProyectos.length
@@ -138,7 +153,8 @@ rhEl("import-file-input").addEventListener("change", function (e) {
       };
 
       var msg = "El archivo contiene " + importedRegistros.length + " jornada(s)" +
-        (omitidos > 0 ? " (" + omitidos + " se omitirán por ya tener un registro en esa fecha)" : "") + ", " +
+        (omitidos > 0 ? " (" + omitidos + " ya existen aquí y no se tocan" +
+          (conActividades > 0 ? ", salvo agregarles actividades a " + conActividades : "") + ")" : "") + ", " +
         importedLicencias.length + " licencia(s)/feriado(s) y " + importedProyectos.length + " función(es) o proyecto(s)." +
         (importedConfig ? " El archivo también trae una configuración guardada." : "") +
         " Se mezclará con tus datos actuales sin borrar nada existente. ¿Confirmar importación?";
@@ -175,8 +191,9 @@ rhEl("import-confirm-ok-btn").addEventListener("click", function () {
   renderLicencias();
   renderProyectos();
   renderConfigForm();
-  rhShowAlert("Importación completada: " + d.counts.registros + " jornada(s), " + d.counts.licencias +
-    " licencia(s)/feriado(s), " + d.counts.proyectos + " función(es)/proyecto(s).", "success");
+  rhShowAlert("Importación completada: " + d.counts.registros + " jornada(s) nueva(s), " +
+    (d.counts.conActividades ? d.counts.conActividades + " con actividades agregadas, " : "") +
+    d.counts.licencias + " licencia(s)/feriado(s), " + d.counts.proyectos + " función(es)/proyecto(s).", "success");
 });
 
 rhEl("import-confirm-cancel-btn").addEventListener("click", function () {

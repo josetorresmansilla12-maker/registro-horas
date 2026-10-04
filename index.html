@@ -6,7 +6,7 @@
 <title>Registro de Horas</title>
 <link rel="stylesheet" href="style.css" />
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#2854a6" />
+<meta name="theme-color" content="#5c2d82" />
 <link rel="icon" href="favicon-32.png" sizes="32x32" />
 <link rel="apple-touch-icon" href="icon-apple-touch.png" />
 </head>
@@ -134,19 +134,12 @@
     </section>
 
     <!-- ===================== TAB: ESTADÍSTICAS ===================== -->
+    <!-- Cada cuadro tiene su propio selector de mes (se arma en estadisticas.js),
+         para cambiar de mes sin tener que subir y bajar por la pantalla. -->
     <section id="tab-estadisticas" class="tab-panel hidden">
-      <!-- Mes a revisar: controla todo lo que se muestra en esta pestaña -->
-      <div class="mes-selector" role="group" aria-label="Mes a revisar">
-        <button type="button" class="btn btn-icon mes-selector-btn" id="stats-mes-prev" aria-label="Mes anterior">◀</button>
-        <div class="mes-selector-centro">
-          <span class="mes-selector-nombre" id="stats-mes-label">—</span>
-          <button type="button" class="btn-link hidden" id="stats-mes-hoy">Volver al mes actual</button>
-        </div>
-        <button type="button" class="btn btn-icon mes-selector-btn" id="stats-mes-next" aria-label="Mes siguiente">▶</button>
-      </div>
-
       <!-- Gráfico principal: cuota del mes (horas + porcentaje) -->
       <section class="stat-card stat-hero">
+        <div class="nav-mes" id="nav-mes-cuota"></div>
         <span class="stat-label">Cuota de horas del mes</span>
         <div class="stat-hero-body">
           <div class="gauge" id="stats-gauge-mes"></div>
@@ -170,15 +163,17 @@
       </section>
 
       <!-- Días que pueden estar afectando el cálculo -->
-      <section class="form-section revisar-section hidden" id="stats-revisar-section">
+      <section class="form-section revisar-section" id="stats-revisar-section">
         <h2>⚠️ Por revisar <span class="label-hint" id="stats-revisar-count"></span></h2>
-        <p class="label-hint">Estos días pueden estar afectando tu cálculo de horas. Revísalos cuando puedas.</p>
+        <div class="nav-mes" id="nav-mes-revisar"></div>
+        <p class="label-hint" id="stats-revisar-hint">Estos días pueden estar afectando tu cálculo de horas. Revísalos cuando puedas.</p>
         <ul class="revisar-list" id="stats-revisar-list"></ul>
       </section>
 
       <!-- Balance: siempre por mes calendario (del 1 al último día) -->
       <section class="form-section">
         <h2>Balance de horas <span class="label-hint">(solo para ti, no se informa)</span></h2>
+        <div class="nav-mes" id="nav-mes-balance"></div>
         <p class="label-hint" id="stats-balance-explica">Horas trabajadas menos las esperadas, contando hasta hoy.</p>
         <div class="balance-grid">
           <div class="balance-donut-card">
@@ -193,6 +188,16 @@
             <span class="balance-tag" id="stats-balance-acum-tag">—</span>
             <span class="stat-sub" id="stats-balance-acum-sub"></span>
           </div>
+          <div class="balance-donut-card">
+            <span class="stat-label">Meses a favor y en contra</span>
+            <div class="donut" id="stats-balance-meses-donut"></div>
+            <span class="stat-sub" id="stats-balance-meses-sub"></span>
+          </div>
+          <div class="balance-donut-card">
+            <span class="stat-label" id="stats-balance-dias-titulo">Días del mes</span>
+            <div class="donut" id="stats-balance-dias-donut"></div>
+            <span class="stat-sub" id="stats-balance-dias-sub"></span>
+          </div>
         </div>
         <div class="leyenda">
           <span><i class="ley-color ley-cumplido"></i>Horas esperadas que cumpliste</span>
@@ -205,13 +210,12 @@
 
       <!-- Asistencia con filtro Mes / Semana / Día -->
       <section class="form-section">
-        <div class="list-header">
-          <h2>Asistencia</h2>
-          <div class="segmented" id="stats-asistencia-vista" role="tablist" aria-label="Ver asistencia por">
-            <button type="button" class="segmented-btn" data-vista="mes" role="tab">Mes</button>
-            <button type="button" class="segmented-btn" data-vista="semana" role="tab">Semana</button>
-            <button type="button" class="segmented-btn" data-vista="dia" role="tab">Día</button>
-          </div>
+        <h2>Asistencia</h2>
+        <div class="nav-mes" id="nav-mes-asistencia"></div>
+        <div class="segmented segmented-ancho" id="stats-asistencia-vista" role="tablist" aria-label="Ver asistencia por">
+          <button type="button" class="segmented-btn" data-vista="mes" role="tab">Mes</button>
+          <button type="button" class="segmented-btn" data-vista="semana" role="tab">Semana</button>
+          <button type="button" class="segmented-btn" data-vista="dia" role="tab">Día</button>
         </div>
         <div id="stats-asistencia-body"></div>
       </section>
@@ -219,6 +223,7 @@
       <!-- Otras estadísticas útiles del mes -->
       <section class="form-section">
         <h2>Más estadísticas del mes</h2>
+        <div class="nav-mes" id="nav-mes-mas"></div>
         <div class="mini-stats" id="stats-mini"></div>
         <h3 class="subseccion">Horas por día de la semana</h3>
         <div class="barras" id="stats-dias-semana"></div>
@@ -226,14 +231,13 @@
 
       <!-- Actividades marcadas en el Marcaje -->
       <section class="form-section">
-        <div class="list-header">
-          <h2>Actividades más frecuentes</h2>
-          <div class="segmented" id="stats-actividades-alcance" aria-label="Período">
-            <button type="button" class="segmented-btn" data-alcance="mes">Este mes</button>
-            <button type="button" class="segmented-btn" data-alcance="todo">Todo</button>
-          </div>
+        <h2>Actividades frecuentes</h2>
+        <div class="nav-mes" id="nav-mes-actividades"></div>
+        <div class="segmented segmented-ancho" id="stats-actividades-alcance" aria-label="Período">
+          <button type="button" class="segmented-btn" data-alcance="mes">Mes elegido</button>
+          <button type="button" class="segmented-btn" data-alcance="todo">Todo el historial</button>
         </div>
-        <div class="barras" id="stats-actividades"></div>
+        <div class="barras barras-actividades" id="stats-actividades"></div>
       </section>
     </section>
 

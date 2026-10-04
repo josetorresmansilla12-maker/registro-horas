@@ -1,13 +1,14 @@
 :root {
-  --color-bg: #f2f5fb;
+  /* Morado institucional de la Universidad de Magallanes. */
+  --color-bg: #f6f3fa;
   --color-surface: #ffffff;
-  --color-primary: #2854a6;
-  --color-primary-dark: #1c3d7d;
-  --color-accent: #d9e4f7;
-  --color-text: #1f2733;
-  --color-text-muted: #647089;
-  --color-border: #dde4f0;
-  --color-tint: #eef2fb;
+  --color-primary: #5c2d82;
+  --color-primary-dark: #3f1d5c;
+  --color-accent: #e9dff3;
+  --color-text: #221d2b;
+  --color-text-muted: #6b6478;
+  --color-border: #e5ddef;
+  --color-tint: #f3eef9;
   --color-danger: #b3453d;
   --color-danger-dark: #93362f;
   --color-warning: #b3790a;
@@ -15,7 +16,7 @@
   --color-success: #1f7a5c;
   --color-success-bg: #e1f3ec;
   --radius: 10px;
-  --shadow: 0 2px 8px rgba(20, 35, 65, 0.08);
+  --shadow: 0 2px 8px rgba(45, 25, 65, 0.08);
 }
 
 * {
@@ -191,7 +192,7 @@ body {
   border-radius: 8px;
   font-size: 1rem;
   font-family: inherit;
-  background: #f7f9fd;
+  background: #faf8fc;
   color: var(--color-text);
 }
 
@@ -204,7 +205,7 @@ body {
 .field textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(40, 84, 166, 0.15);
+  box-shadow: 0 0 0 3px rgba(92, 45, 130, 0.15);
 }
 
 .field input.invalid,
@@ -260,7 +261,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #c6d6f2;
+  background: #dccdee;
 }
 
 .btn-danger {
@@ -941,7 +942,7 @@ body {
   border-radius: 8px;
   font-size: 1rem;
   font-family: inherit;
-  background: #f7f9fd;
+  background: #faf8fc;
   color: var(--color-text);
 }
 
@@ -974,7 +975,7 @@ body {
 
 .app-toasts .app-alert {
   margin-top: 0;
-  box-shadow: 0 6px 24px rgba(20, 35, 65, 0.18);
+  box-shadow: 0 6px 24px rgba(45, 25, 65, 0.18);
   pointer-events: auto;
   animation: toast-entra 0.18s ease-out;
 }
@@ -1025,7 +1026,7 @@ body {
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chip {
@@ -1033,9 +1034,9 @@ body {
   background: var(--color-surface);
   color: var(--color-text);
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 6px 11px;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   text-align: left;
@@ -1066,7 +1067,7 @@ body {
   border-radius: 8px;
   font: inherit;
   font-size: 1rem;
-  background: #f7f9fd;
+  background: #faf8fc;
 }
 
 .marcaje-rapido-actividades {
@@ -1131,7 +1132,7 @@ body {
   border-radius: 8px;
   font: inherit;
   font-size: 1rem;
-  background: #f7f9fd;
+  background: #faf8fc;
 }
 
 .config-explica {
@@ -1200,37 +1201,72 @@ body {
 .status-pill.est-fuera,
 .status-pill.est-sin_contrato { background: var(--color-tint); color: var(--color-text-muted); }
 
-/* ---------- Estadísticas: selector de mes ---------- */
+/* ---------- Estadísticas: selector de mes de cada cuadro ---------- */
 
-.mes-selector {
+.nav-mes {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+  background: var(--color-tint);
+  border-radius: 10px;
+  padding: 6px;
+  margin: 0 0 12px;
+}
+
+.nav-mes-btn {
+  width: 42px;
+  height: 36px;
+  padding: 0;
   background: var(--color-surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 10px 12px;
-  margin-bottom: 16px;
+  color: var(--color-primary);
+  font-size: 0.95rem;
 }
 
-.mes-selector-btn {
-  width: 44px;
-  height: 40px;
-  font-size: 1rem;
-}
-
-.mes-selector-centro {
+.nav-mes-centro {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
+  text-align: center;
 }
 
-.mes-selector-nombre {
-  font-size: 1.15rem;
+.nav-mes-nombre {
   font-weight: 800;
   color: var(--color-primary-dark);
+}
+
+.nav-mes-inactivo {
+  opacity: 0.45;
+}
+
+.stat-hero .nav-mes {
+  margin-bottom: 4px;
+}
+
+.segmented-ancho {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.segmented-ancho .segmented-btn {
+  flex: 1;
+}
+
+.revisar-section.revisar-ok {
+  border-left-color: var(--color-success);
+}
+
+.revisar-vacio {
+  color: var(--color-success);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 4px 0;
+}
+
+.mini-card.mini-texto .mini-valor {
+  font-size: 0.95rem;
+  line-height: 1.25;
 }
 
 /* ---------- Estadísticas: cuota ---------- */
@@ -1343,7 +1379,7 @@ body {
   display: inline-block;
 }
 
-.ley-cumplido { background: #2854a6; }
+.ley-cumplido { background: #5c2d82; }
 .ley-favor { background: #1f7a5c; }
 .ley-contra { background: #c0453c; }
 
@@ -1454,7 +1490,7 @@ body {
 .segmented-btn.activo {
   background: var(--color-surface);
   color: var(--color-primary-dark);
-  box-shadow: 0 1px 3px rgba(20, 35, 65, 0.15);
+  box-shadow: 0 1px 3px rgba(45, 25, 65, 0.15);
 }
 
 /* ---------- Calendario del mes ---------- */
@@ -1532,7 +1568,7 @@ body {
 }
 
 .cal-dia.elegido {
-  outline: 3px solid rgba(40, 84, 166, 0.35);
+  outline: 3px solid rgba(92, 45, 130, 0.35);
   outline-offset: 1px;
 }
 

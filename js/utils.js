@@ -155,11 +155,23 @@ function rhRegistroExcluyeMeta(registro) {
   return !!rhRegistroEstadoLabel(registro);
 }
 
-// Actividades marcadas en una jornada (nombres, incluidas las escritas en
+// Lista de actividades sin vacíos ni repetidos, con los nombres antiguos
+// traducidos a su categoría actual.
+function rhNormalizarActividades(lista) {
+  var res = [];
+  (lista || []).forEach(function (a) {
+    if (typeof a !== "string" || !a.trim()) return;
+    var nombre = RH_ACTIVIDADES_ALIAS[a.trim()] || a.trim();
+    if (res.indexOf(nombre) === -1) res.push(nombre);
+  });
+  return res;
+}
+
+// Actividades marcadas en una jornada (categorías, incluidas las escritas en
 // "Otro"). [] si el registro es antiguo o no tiene ninguna.
 function rhRegistroActividades(registro) {
   if (!registro || !Array.isArray(registro.actividades)) return [];
-  return registro.actividades.filter(function (a) { return typeof a === "string" && a.trim(); });
+  return rhNormalizarActividades(registro.actividades);
 }
 
 function rhRegistroMinutes(registro) {

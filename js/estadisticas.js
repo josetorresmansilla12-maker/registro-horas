@@ -5,13 +5,16 @@
 // Todo lo de esta pestaña se calcula para el mes elegido arriba (por defecto
 // el mes en curso). Es información personal: no se informa a la jefatura.
 
-var RH_COLOR_AZUL = "#2854a6";
+var RH_COLOR_PRINCIPAL = "#5c2d82";
 var RH_COLOR_VERDE = "#1f7a5c";
 var RH_COLOR_ROJO = "#c0453c";
-var RH_COLOR_PISTA = "#e3e9f5";
-var RH_COLOR_TEXTO_SUAVE = "#647089";
+var RH_COLOR_PISTA = "#ece4f4";
+var RH_COLOR_TEXTO_SUAVE = "#6b6478";
 
-var rhStatsMes = rhMonthRange(rhTodayISO()).start;
+// Mes que muestra cada cuadro (independientes entre sí).
+var RH_CUADROS_STATS = ["cuota", "revisar", "balance", "asistencia", "mas", "actividades"];
+var rhStatsMeses = {};
+RH_CUADROS_STATS.forEach(function (c) { rhStatsMeses[c] = rhMonthRange(rhTodayISO()).start; });
 var rhStatsVista = rhPrefGet("rh_pref_asistencia_vista", "mes");
 var rhStatsAlcanceActividades = rhPrefGet("rh_pref_actividades_alcance", "mes");
 var rhStatsDiaElegido = null;
@@ -101,7 +104,7 @@ function rhRenderDonut(container, opts) {
 
   var t1 = rhSvg("text", {
     x: "50%", y: opts.subtexto ? "46%" : "50%", "text-anchor": "middle", "dominant-baseline": "middle",
-    "font-size": opts.tamTexto || 19, "font-weight": "800", fill: opts.colorTexto || RH_COLOR_AZUL
+    "font-size": opts.tamTexto || 19, "font-weight": "800", fill: opts.colorTexto || RH_COLOR_PRINCIPAL
   });
   t1.textContent = opts.texto;
   svg.appendChild(t1);
@@ -130,13 +133,14 @@ function rhRenderDonaBalance(container, b) {
   rhRenderDonut(container, {
     total: Math.max(b.trabajadoMin, b.esperadoMin),
     segmentos: [
-      { valor: cumplido, color: RH_COLOR_AZUL },
+      { valor: cumplido, color: RH_COLOR_PRINCIPAL },
       { valor: favor || contra ? resto : 0, color: favor ? RH_COLOR_VERDE : RH_COLOR_ROJO }
     ],
     texto: sinDatos ? "—" : rhConSigno(b.balanceMin),
     subtexto: sinDatos ? "sin datos" : favor ? "te deben" : contra ? "debes" : "al día",
-    colorTexto: favor ? RH_COLOR_VERDE : contra ? RH_COLOR_ROJO : RH_COLOR_AZUL,
+    colorTexto: favor ? RH_COLOR_VERDE : contra ? RH_COLOR_ROJO : RH_COLOR_PRINCIPAL,
     tamTexto: 17,
+    size: 124,
     ariaLabel: "Balance " + rhConSigno(b.balanceMin)
   });
 }
@@ -157,41 +161,74 @@ function rhBalanceTagLabel(balanceMin, corto) {
 
 // ---------- Render principal ----------
 
+var RH_RENDER_CUADRO = {
+  cuota: function (mes) { rhStatsRenderCuota(mes); },
+  revisar: function (mes) { rhStatsRenderRevisar(mes); },
+  balance: function (mes) { rhStatsRenderBalance(mes); },
+  asistencia: function (mes) { rhStatsRenderAsistencia(mes); },
+  mas: function (mes) { rhStatsRenderMasEstadisticas(mes); },
+  actividades: function (mes) { rhStatsRenderActividades(mes); }
+};
+
 function renderEstadisticas() {
-  var mes = rhStatsMes;
-  var hoyMes = rhMonthRange(rhTodayISO()).start;
-  rhEl("stats-mes-label").textContent = rhNombreMes(mes, true);
-  rhEl("stats-mes-hoy").classList.toggle("hidden", mes === hoyMes);
-
-  rhStatsRenderCuota(mes);
-  rhStatsRenderRevisar(mes);
-  rhStatsRenderBalance(mes);
-  rhStatsRenderAsistencia(mes);
-  rhStatsRenderMasEstadisticas(mes);
-  rhStatsRenderActividades(mes);
+  RH_CUADROS_STATS.forEach(function (c) {
+    rhStatsRenderNav(c);
+    RH_RENDER_CUADRO[c](rhStatsMeses[c]);
+  });
 }
 
-function rhStatsCambiarMes(nuevoMes) {
-  rhStatsMes = rhMonthRange(nuevoMes).start;
-  rhStatsDiaElegido = null;
-  renderEstadisticas();
+function rhStatsCambiarMes(cuadro, nuevoMes) {
+  rhStatsMeses[cuadro] = rhMonthRange(nuevoMes).start;
+  if (cuadro === "asistencia") rhStatsDiaElegido = null;
+  rhStatsRenderNav(cuadro);
+  RH_RENDER_CUADRO[cuadro](rhStatsMeses[cuadro]);
 }
 
-rhEl("stats-mes-prev").addEventListener("click", function () {
-  var d = rhParseISO(rhStatsMes);
-  d.setMonth(d.getMonth() - 1);
-  rhStatsCambiarMes(rhDateToISO(d));
-});
+function rhStatsMoverMes(cuadro, delta) {
+  var d = rhParseISO(rhStatsMeses[cuadro]);
+  d.setMonth(d.getMonth() + delta);
+  rhStatsCambiarMes(cuadro, rhDateToISO(d));
+}
 
-rhEl("stats-mes-next").addEventListener("click", function () {
-  var d = rhParseISO(rhStatsMes);
-  d.setMonth(d.getMonth() + 1);
-  rhStatsCambiarMes(rhDateToISO(d));
-});
+// Selector ◀ Mes Año ▶ de un cuadro (con "volver al mes actual" si hace falta).
+function rhStatsRenderNav(cuadro) {
+  var cont = rhEl("nav-mes-" + cuadro);
+  var mes = rhStatsMeses[cuadro];
+  rhClear(cont);
 
-rhEl("stats-mes-hoy").addEventListener("click", function () {
-  rhStatsCambiarMes(rhTodayISO());
-});
+  var prev = document.createElement("button");
+  prev.type = "button";
+  prev.className = "btn btn-icon nav-mes-btn";
+  prev.textContent = "◀";
+  prev.setAttribute("aria-label", "Mes anterior");
+  prev.addEventListener("click", function () { rhStatsMoverMes(cuadro, -1); });
+
+  var centro = document.createElement("div");
+  centro.className = "nav-mes-centro";
+  var nombre = document.createElement("span");
+  nombre.className = "nav-mes-nombre";
+  nombre.textContent = rhNombreMes(mes, true);
+  centro.appendChild(nombre);
+  if (mes !== rhMonthRange(rhTodayISO()).start) {
+    var hoy = document.createElement("button");
+    hoy.type = "button";
+    hoy.className = "btn-link";
+    hoy.textContent = "Volver al mes actual";
+    hoy.addEventListener("click", function () { rhStatsCambiarMes(cuadro, rhTodayISO()); });
+    centro.appendChild(hoy);
+  }
+
+  var next = document.createElement("button");
+  next.type = "button";
+  next.className = "btn btn-icon nav-mes-btn";
+  next.textContent = "▶";
+  next.setAttribute("aria-label", "Mes siguiente");
+  next.addEventListener("click", function () { rhStatsMoverMes(cuadro, 1); });
+
+  cont.appendChild(prev);
+  cont.appendChild(centro);
+  cont.appendChild(next);
+}
 
 // ---------- Cuota del mes ----------
 
@@ -232,10 +269,10 @@ function rhStatsRenderCuota(mes) {
 
   rhRenderDonut(rhEl("stats-gauge-mes"), {
     total: metaMin,
-    segmentos: [{ valor: Math.min(trabajadoMin, metaMin), color: cumplida ? RH_COLOR_VERDE : RH_COLOR_AZUL }],
+    segmentos: [{ valor: Math.min(trabajadoMin, metaMin), color: cumplida ? RH_COLOR_VERDE : RH_COLOR_PRINCIPAL }],
     texto: metaMin > 0 ? Math.round(pct) + "%" : "—",
     subtexto: "de la cuota",
-    colorTexto: cumplida ? RH_COLOR_VERDE : RH_COLOR_AZUL,
+    colorTexto: cumplida ? RH_COLOR_VERDE : RH_COLOR_PRINCIPAL,
     size: 128,
     ariaLabel: Math.round(pct) + "% de la cuota"
   });
@@ -361,9 +398,16 @@ function rhStatsRenderRevisar(mes) {
   var section = rhEl("stats-revisar-section");
   var ul = rhEl("stats-revisar-list");
   rhClear(ul);
-  section.classList.toggle("hidden", items.length === 0);
-  if (items.length === 0) return;
-  rhEl("stats-revisar-count").textContent = "(" + items.length + ")";
+  section.classList.toggle("revisar-ok", items.length === 0);
+  rhEl("stats-revisar-count").textContent = items.length ? "(" + items.length + ")" : "";
+  rhEl("stats-revisar-hint").classList.toggle("hidden", items.length === 0);
+  if (items.length === 0) {
+    var ok = document.createElement("li");
+    ok.className = "revisar-vacio";
+    ok.textContent = "✅ Todo en orden en " + rhNombreMes(mes).toLowerCase() + ": no hay días pendientes de revisar.";
+    ul.appendChild(ok);
+    return;
+  }
 
   var metaDiaria = rhMinutesToHM(rhMetaDiariaMinutos(rhLoadConfig())).replace(" 00m", "");
   var today = rhTodayISO();
@@ -415,6 +459,22 @@ function rhStatsRenderRevisar(mes) {
 
 // ---------- Balance (por mes calendario, hasta hoy) ----------
 
+// Balance de cada mes desde el inicio del seguimiento hasta el mes en curso.
+function rhStatsBalancesPorMes() {
+  var hoyMes = rhMonthRange(rhTodayISO()).start;
+  var mes = rhMonthRange(rhBalanceStartDate()).start;
+  var filas = [];
+  var guard = 0;
+  while (rhCompareISO(mes, hoyMes) <= 0 && guard < 120) {
+    filas.push({ mes: mes, b: rhBalanceMes(mes) });
+    var d = rhParseISO(mes);
+    d.setMonth(d.getMonth() + 1);
+    mes = rhDateToISO(d);
+    guard++;
+  }
+  return filas;
+}
+
 function rhStatsRenderBalance(mes) {
   var momento = rhMomentoMes(mes);
   var range = rhMonthRange(mes);
@@ -449,24 +509,80 @@ function rhStatsRenderBalance(mes) {
     "En el mes en curso cuenta solo hasta hoy, para que no aparezca como deuda lo que todavía no ocurre. " +
     "Trabajas a honorario: es solo una referencia personal.";
 
-  rhStatsRenderHistoria();
+  var filas = rhStatsBalancesPorMes();
+  rhStatsRenderDonaMeses(filas);
+  rhStatsRenderDonaDias(mes);
+  rhStatsRenderHistoria(filas);
+}
+
+// Cuántas horas te deben los meses a favor y cuántas debes en los meses en
+// contra, por separado (el acumulado es la diferencia entre ambas).
+function rhStatsRenderDonaMeses(filas) {
+  var favor = 0;
+  var contra = 0;
+  var mesesFavor = [];
+  var mesesContra = [];
+  filas.forEach(function (f) {
+    var nombre = RH_MESES_ABREV[rhParseISO(f.mes).getMonth()];
+    if (f.b.balanceMin > 1) { favor += f.b.balanceMin; mesesFavor.push(nombre); }
+    else if (f.b.balanceMin < -1) { contra -= f.b.balanceMin; mesesContra.push(nombre); }
+  });
+  rhRenderDonut(rhEl("stats-balance-meses-donut"), {
+    total: favor + contra,
+    segmentos: [{ valor: favor, color: RH_COLOR_VERDE }, { valor: contra, color: RH_COLOR_ROJO }],
+    texto: mesesFavor.length + " / " + mesesContra.length,
+    subtexto: "favor / contra",
+    tamTexto: 18,
+    size: 124,
+    ariaLabel: mesesFavor.length + " meses a favor y " + mesesContra.length + " en contra"
+  });
+  rhEl("stats-balance-meses-sub").textContent =
+    "Te deben " + rhMinutesToHM(favor) + (mesesFavor.length ? " (" + mesesFavor.join(", ") + ")" : "") +
+    " · Debes " + rhMinutesToHM(contra) + (mesesContra.length ? " (" + mesesContra.join(", ") + ")" : "") + ".";
+}
+
+// Días hábiles del mes: cuáles se trabajaron, cuáles no contaban (feriado, no
+// convocado, licencia) y cuáles quedaron sin registro (esos son los que
+// generan horas en contra).
+function rhStatsRenderDonaDias(mes) {
+  var config = rhLoadConfig();
+  var today = rhTodayISO();
+  var c = { trabajados: 0, justificados: 0, sinRegistro: 0, proximos: 0 };
+  rhDaysBetweenInclusive(rhMonthRange(mes).start, rhMonthRange(mes).end).forEach(function (iso) {
+    var e = rhEstadoDia(iso, config, today);
+    if (!e.laboral || e.clave === "fuera") return;
+    if (e.clave === "cumplido") c.trabajados++;
+    else if (e.clave === "sin_registro") c.sinRegistro++;
+    else if (e.clave === "futuro" || e.clave === "hoy") c.proximos++;
+    else c.justificados++;
+  });
+  var total = c.trabajados + c.justificados + c.sinRegistro + c.proximos;
+  rhEl("stats-balance-dias-titulo").textContent = "Días hábiles de " + rhNombreMes(mes).toLowerCase();
+  rhRenderDonut(rhEl("stats-balance-dias-donut"), {
+    total: total,
+    segmentos: [
+      { valor: c.trabajados, color: RH_COLOR_VERDE },
+      { valor: c.justificados, color: "#d99a1e" },
+      { valor: c.sinRegistro, color: RH_COLOR_ROJO }
+    ],
+    texto: total ? c.trabajados + "/" + total : "—",
+    subtexto: "trabajados",
+    tamTexto: 18,
+    size: 124,
+    ariaLabel: c.trabajados + " de " + total + " días hábiles trabajados"
+  });
+  var partes = [rhPlural(c.trabajados, "trabajado", "trabajados")];
+  if (c.justificados) partes.push(c.justificados + " sin convocatoria/feriado");
+  if (c.sinRegistro) partes.push(rhPlural(c.sinRegistro, "sin registro", "sin registro"));
+  if (c.proximos) partes.push(rhPlural(c.proximos, "por venir", "por venir"));
+  rhEl("stats-balance-dias-sub").textContent = partes.join(" · ") + ".";
 }
 
 // Barras divergentes con el balance de cada mes, desde el inicio hasta hoy.
-function rhStatsRenderHistoria() {
+function rhStatsRenderHistoria(filas) {
   var cont = rhEl("stats-balance-historia");
   rhClear(cont);
   var hoyMes = rhMonthRange(rhTodayISO()).start;
-  var mes = rhMonthRange(rhBalanceStartDate()).start;
-  var filas = [];
-  var guard = 0;
-  while (rhCompareISO(mes, hoyMes) <= 0 && guard < 120) {
-    filas.push({ mes: mes, b: rhBalanceMes(mes) });
-    var d = rhParseISO(mes);
-    d.setMonth(d.getMonth() + 1);
-    mes = rhDateToISO(d);
-    guard++;
-  }
   if (filas.length === 0) {
     cont.textContent = "Aún no hay meses con registros.";
     return;
@@ -476,7 +592,7 @@ function rhStatsRenderHistoria() {
   filas.forEach(function (f) {
     var fila = document.createElement("button");
     fila.type = "button";
-    fila.className = "hist-fila" + (f.mes === rhStatsMes ? " elegido" : "");
+    fila.className = "hist-fila" + (f.mes === rhStatsMeses.balance ? " elegido" : "");
     fila.setAttribute("aria-label", rhNombreMes(f.mes, true) + ": " + rhConSigno(f.b.balanceMin));
 
     var etiqueta = document.createElement("span");
@@ -505,7 +621,7 @@ function rhStatsRenderHistoria() {
     valor.textContent = rhConSigno(f.b.balanceMin);
     fila.appendChild(valor);
 
-    fila.addEventListener("click", function () { rhStatsCambiarMes(f.mes); });
+    fila.addEventListener("click", function () { rhStatsCambiarMes("balance", f.mes); });
     cont.appendChild(fila);
   });
 
@@ -535,7 +651,7 @@ rhEl("stats-asistencia-vista").addEventListener("click", function (e) {
   if (!b) return;
   rhStatsVista = b.getAttribute("data-vista");
   rhPrefSet("rh_pref_asistencia_vista", rhStatsVista);
-  rhStatsRenderAsistencia(rhStatsMes);
+  rhStatsRenderAsistencia(rhStatsMeses.asistencia);
 });
 
 function rhStatsPill(estado) {
@@ -864,21 +980,34 @@ function rhStatsRenderMasEstadisticas(mes) {
     return rhMinutosEsperadosDia(iso, config) > 0;
   }).length;
 
+  // "Jornada más larga/corta" = total trabajado en el día. "Días con más de
+  // una/dos jornadas" = días con 2+ / 3+ bloques de entrada-salida.
   var masLarga = null;
-  var entradas = [];
-  var salidas = [];
-  var dobles = 0;
+  var masCorta = null;
+  var masDeUna = 0;
+  var masDeDos = 0;
   registros.forEach(function (r) {
     var min = rhRegistroMinutes(r);
     if (!masLarga || min > masLarga.min) masLarga = { fecha: r.fecha, min: min };
+    if (!masCorta || min < masCorta.min) masCorta = { fecha: r.fecha, min: min };
     var bloques = rhRegistroBloques(r).filter(function (b) { return b.entrada && b.salida; });
-    if (bloques.length >= 2) dobles++;
-    var e = bloques.map(function (b) { return rhTimeToMinutes(b.entrada); });
-    var s = bloques.map(function (b) { return rhTimeToMinutes(b.salida); });
-    if (e.length) entradas.push(Math.min.apply(null, e));
-    if (s.length) salidas.push(Math.max.apply(null, s));
+    if (bloques.length >= 2) masDeUna++;
+    if (bloques.length >= 3) masDeDos++;
   });
-  function promedio(arr) { return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length; }
+  function fechaCorta(iso) { return rhDayOfWeekLabel(iso, true) + " " + rhFormatDateDisplay(iso).slice(0, 5); }
+  function pctDias(n) { return registros.length ? Math.round((n / registros.length) * 100) + "% de los días trabajados" : ""; }
+
+  // Semana (lunes a domingo, dentro del mes) con más horas trabajadas.
+  var mejorSemana = null;
+  rhGroupMonthByWeek(range).forEach(function (g, idx) {
+    var min = g.dias.reduce(function (sum, iso) { return sum + rhRegistroMinutes(rhGetRegistroByFecha(iso)); }, 0);
+    if (min > 0 && (!mejorSemana || min > mejorSemana.min)) {
+      mejorSemana = { n: idx + 1, min: min, desde: g.dias[0], hasta: g.dias[g.dias.length - 1] };
+    }
+  });
+
+  var actividades = rhContarActividades(range.start, range.end).lista;
+  var topActividad = actividades[0];
 
   var mesAnterior = rhParseISO(range.start);
   mesAnterior.setMonth(mesAnterior.getMonth() - 1);
@@ -893,13 +1022,19 @@ function rhStatsRenderMasEstadisticas(mes) {
   cont.appendChild(rhStatsMiniCard("Promedio por día trabajado",
     registros.length ? rhMinutesToHM(totalMin / registros.length) : "—"));
   cont.appendChild(rhStatsMiniCard("Jornada más larga",
-    masLarga ? rhMinutesToHM(masLarga.min) : "—",
-    masLarga ? rhDayOfWeekLabel(masLarga.fecha, true) + " " + rhFormatDateDisplay(masLarga.fecha).slice(0, 5) : ""));
-  cont.appendChild(rhStatsMiniCard("Llegada promedio",
-    entradas.length ? rhFormatHora12(rhMinutesToTimeStr(Math.round(promedio(entradas)))) : "—",
-    salidas.length ? "Salida promedio: " + rhFormatHora12(rhMinutesToTimeStr(Math.round(promedio(salidas)))) : ""));
-  cont.appendChild(rhStatsMiniCard("Días con más de una jornada", String(dobles),
-    registros.length ? Math.round((dobles / registros.length) * 100) + "% de los días trabajados" : ""));
+    masLarga ? rhMinutesToHM(masLarga.min) : "—", masLarga ? fechaCorta(masLarga.fecha) + " (total del día)" : ""));
+  cont.appendChild(rhStatsMiniCard("Jornada más corta",
+    masCorta ? rhMinutesToHM(masCorta.min) : "—", masCorta ? fechaCorta(masCorta.fecha) + " (total del día)" : ""));
+  cont.appendChild(rhStatsMiniCard("Días con más de una jornada", String(masDeUna), pctDias(masDeUna)));
+  cont.appendChild(rhStatsMiniCard("Días con más de dos jornadas", String(masDeDos), pctDias(masDeDos)));
+  cont.appendChild(rhStatsMiniCard("Actividad más realizada",
+    topActividad ? topActividad.nombre : "—",
+    topActividad ? rhPlural(topActividad.dias, "día", "días") + " este mes" : "Aún sin actividades marcadas",
+    "mini-texto"));
+  cont.appendChild(rhStatsMiniCard("Semana con más horas",
+    mejorSemana ? rhMinutesToHM(mejorSemana.min) : "—",
+    mejorSemana ? "Semana " + mejorSemana.n + " (" + rhParseISO(mejorSemana.desde).getDate() + "–" +
+      rhParseISO(mejorSemana.hasta).getDate() + " " + RH_MESES_ABREV[rhParseISO(mejorSemana.desde).getMonth()] + ")" : ""));
   cont.appendChild(rhStatsMiniCard("Feriados, no convocados y licencias", String(especiales.total),
     especiales.feriados + " fer. · " + especiales.noConvocados + " no conv. · " + especiales.licencias + " lic."));
   var dif = rhWorkedMinutesInRange(range.start, range.end) - trabajadoAnt;
@@ -969,18 +1104,22 @@ rhEl("stats-actividades-alcance").addEventListener("click", function (e) {
   if (!b) return;
   rhStatsAlcanceActividades = b.getAttribute("data-alcance");
   rhPrefSet("rh_pref_actividades_alcance", rhStatsAlcanceActividades);
-  rhStatsRenderActividades(rhStatsMes);
+  rhStatsRenderActividades(rhStatsMeses.actividades);
 });
 
 function rhStatsRenderActividades(mes) {
   rhEl("stats-actividades-alcance").querySelectorAll(".segmented-btn").forEach(function (b) {
     b.classList.toggle("activo", b.getAttribute("data-alcance") === rhStatsAlcanceActividades);
   });
+  var todo = rhStatsAlcanceActividades === "todo";
+  // Con "Todo el historial" el mes elegido no aplica: se atenúa su selector.
+  rhEl("nav-mes-actividades").classList.toggle("nav-mes-inactivo", todo);
   var range = rhMonthRange(mes);
-  var res = rhStatsAlcanceActividades === "todo" ? rhContarActividades() : rhContarActividades(range.start, range.end);
+  var res = todo ? rhContarActividades() : rhContarActividades(range.start, range.end);
   var cont = rhEl("stats-actividades");
   var filas = res.lista.map(function (a) {
-    return { etiqueta: a.nombre, valor: a.dias, texto: rhPlural(a.dias, "día", "días") };
+    var pct = res.diasTrabajados ? Math.round((a.dias / res.diasTrabajados) * 100) : 0;
+    return { etiqueta: a.nombre, valor: a.dias, texto: rhPlural(a.dias, "día", "días") + (pct ? " · " + pct + "%" : "") };
   });
   rhStatsRenderBarras(cont, filas,
     "Aún no hay actividades marcadas " + (rhStatsAlcanceActividades === "todo" ? "" : "en " + rhNombreMes(mes).toLowerCase() + " ") +

@@ -243,7 +243,9 @@ function rhLoadConfig() {
     merged.horarioBase.bloque1 = Object.assign({}, RH_CONFIG_DEFAULT.horarioBase.bloque1, (parsed.horarioBase || {}).bloque1 || {});
     merged.horarioBase.bloque2 = Object.assign({}, RH_CONFIG_DEFAULT.horarioBase.bloque2, (parsed.horarioBase || {}).bloque2 || {});
     merged.diasLaborales = Array.isArray(parsed.diasLaborales) ? parsed.diasLaborales : RH_CONFIG_DEFAULT.diasLaborales.slice();
-    merged.actividades = Array.isArray(parsed.actividades) ? parsed.actividades : RH_ACTIVIDADES_DEFAULT.slice();
+    merged.actividades = Array.isArray(parsed.actividades)
+      ? rhNormalizarActividades(parsed.actividades)
+      : RH_ACTIVIDADES_DEFAULT.slice();
   } catch (e) {
     console.error("No se pudo leer la configuración:", e);
     merged = Object.assign({}, RH_CONFIG_DEFAULT, { actividades: RH_ACTIVIDADES_DEFAULT.slice() });

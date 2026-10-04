@@ -9,14 +9,16 @@ navegador donde la abras (o del teléfono, si se instala como PWA).
 - **Marcaje**: bloque "Marcaje rápido" para marcar la hora de entrada/salida con un toque (con
   botón para deshacer la última marca por si se presiona por error) y elegir ahí mismo las
   actividades del día; varias jornadas por día; **actividades rápidas** (botones de selección
-  múltiple con tus actividades habituales, más "Otro" para escribir una); nota/bitácora; historial
+  múltiple: Talleres vocacionales Kuder, Aplicaciones de test vocacionales Kuder, Oficina, Home
+  office, Ensayos PAES y "Otro" para escribir una); nota/bitácora; historial
   mensual (en el celular se ve como tarjetas) con fines de semana y feriados en rojo y "no
   convocado" en ámbar. Si guardas una jornada en una fecha que ya tenía registro, se **suma** a lo
   existente (con aviso) en vez de reemplazarlo.
 - **Licencias y Feriados**: licencia médica, permiso especial, feriado, *No convocado* u otro, cada
   uno con rango de fechas; botón para agregar de una vez los **feriados nacionales de Chile** del
   año que caen en días hábiles.
-- **Estadísticas** (uso personal, no se informa), todo para el **mes que elijas** arriba:
+- **Estadísticas** (uso personal, no se informa); **cada cuadro tiene su propio selector de mes**
+  con flechas, independiente de los demás:
   - Cuota del mes en horas y porcentaje, con el cálculo explicado (días hábiles − feriados − no
     convocados × horas por día) y el ritmo necesario por semana y por día hábil.
   - **Por revisar**: feriados nacionales sin marcar, días hábiles sin registro y días con horas
@@ -24,8 +26,11 @@ navegador donde la abras (o del teléfono, si se instala como PWA).
   - Balance por **mes calendario** (contado hasta hoy en el mes en curso) y acumulado, con
     gráficos circulares y barras "mes a mes".
   - Asistencia con filtro **Mes** (calendario), **Semana** (porcentaje por semana) o **Día**.
-  - Más estadísticas (días trabajados, promedio, jornada más larga, llegada/salida promedio,
-    comparación con el mes anterior, horas por día de la semana) y **actividades más frecuentes**.
+  - Balance con 4 gráficos circulares: balance del mes, acumulado, meses a favor/en contra y días
+    hábiles del mes (trabajados, justificados, sin registro).
+  - Más estadísticas: días trabajados, promedio por día, jornada más larga y más corta, días con
+    más de una y de dos jornadas, actividad más realizada, semana con más horas, comparación con
+    el mes anterior y horas por día de la semana; y **actividades frecuentes** (mes o todo).
 - **Informe**: pestaña con identidad visual morada (Universidad de Magallanes) pensada para
   compartir con la jefatura — rango por defecto el mes actual completo, selector de período
   (manual, mes actual, últimos 30/60/90 días o año completo), resumen de meta vs. horas trabajadas
@@ -38,7 +43,9 @@ navegador donde la abras (o del teléfono, si se instala como PWA).
 - **Exportar a Excel**: reporte `.xlsx` por rango de fechas con total del período, hoja "Informe"
   lista para capturar y hoja opcional de proyectos.
 - **Respaldo**: exportar/importar todos los datos en `.json` (la importación nunca sobrescribe un
-  marcaje ya guardado) y aviso si llevas más de 7 días sin respaldar.
+  marcaje ya guardado; solo le agrega las actividades que traiga el respaldo) y aviso si llevas
+  más de 7 días sin respaldar.
+- **Diseño**: color morado de la Universidad de Magallanes, pensado primero para el celular.
 
 ## Uso local
 
