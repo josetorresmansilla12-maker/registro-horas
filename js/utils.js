@@ -174,6 +174,20 @@ function rhRegistroActividades(registro) {
   return rhNormalizarActividades(registro.actividades);
 }
 
+// Minutos de las jornadas que caen dentro de un horario (ej. la jornada de
+// tarde 14:30–18:00), para saber cuánto se trabajó en cada franja.
+function rhMinutosEnVentana(bloques, ventana) {
+  var vi = rhTimeToMinutes(ventana && ventana.entrada);
+  var vf = rhTimeToMinutes(ventana && ventana.salida);
+  if (vi === null || vf === null || vf <= vi) return 0;
+  return (bloques || []).reduce(function (sum, b) {
+    var bi = rhTimeToMinutes(b.entrada);
+    var bf = rhTimeToMinutes(b.salida);
+    if (bi === null || bf === null || bf <= bi) return sum;
+    return sum + Math.max(0, Math.min(bf, vf) - Math.max(bi, vi));
+  }, 0);
+}
+
 function rhRegistroMinutes(registro) {
   if (!registro) return 0;
   return rhRegistroBloques(registro).reduce(function (sum, b) {

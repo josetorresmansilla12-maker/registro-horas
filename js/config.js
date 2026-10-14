@@ -3,12 +3,6 @@
 // ---------- Tab: Configuración ----------
 
 var configForm = rhEl("config-form");
-var configMetaSemanalInput = rhEl("config-meta-semanal");
-var configB1EntradaInput = rhEl("config-b1-entrada");
-var configB1SalidaInput = rhEl("config-b1-salida");
-var configB2ActivoInput = rhEl("config-b2-activo");
-var configB2EntradaInput = rhEl("config-b2-entrada");
-var configB2SalidaInput = rhEl("config-b2-salida");
 var configDiasLaboralesWrap = rhEl("config-dias-laborales");
 var configFechaInicioBalanceInput = rhEl("config-fecha-inicio-balance");
 
@@ -25,30 +19,15 @@ RH_DIAS_SEMANA_ORDEN.forEach(function (diaId) {
   configDiasLaboralesWrap.appendChild(label);
 });
 
-// Explica cómo se obtiene la meta de cada mes a partir de las horas semanales.
-function rhConfigRenderExplicacionMeta() {
-  var config = rhLoadConfig();
-  var horasSemana = Number(configMetaSemanalInput.value) || 0;
-  var diasSemana = config.diasLaborales.length || 5;
-  var porDia = rhMinutesToHM((horasSemana * 60) / diasSemana).replace(" 00m", "");
-  var hoy = rhTodayISO();
-  rhEl("config-meta-explica").textContent =
-    "Equivale a " + porDia + " por día hábil (" + horasSemana + " h ÷ " + diasSemana + " días laborales). " +
-    "La meta de cada mes se calcula sola con los días hábiles reales de ese mes, descontando feriados, " +
-    "no convocados y licencias — por ejemplo, " + RH_MESES[rhParseISO(hoy).getMonth()].toLowerCase() +
-    " pide " + rhMinutesToHM(rhMetaMensualAjustada(hoy)) + ".";
-}
-
-configMetaSemanalInput.addEventListener("input", rhConfigRenderExplicacionMeta);
+// El contrato y las jornadas se configuran en la pestaña Arreglo de horas.
+rhEl("config-ir-arreglo").addEventListener("click", function () {
+  rhActivateTab("arreglo");
+  var form = rhEl("arreglo-form");
+  window.scrollTo({ top: Math.max(0, form.getBoundingClientRect().top + window.scrollY - 80), behavior: "smooth" });
+});
 
 function renderConfigForm() {
   var config = rhLoadConfig();
-  configMetaSemanalInput.value = config.metaSemanal;
-  configB1EntradaInput.value = config.horarioBase.bloque1.entrada || "";
-  configB1SalidaInput.value = config.horarioBase.bloque1.salida || "";
-  configB2ActivoInput.checked = config.bloque2Activo;
-  configB2EntradaInput.value = config.horarioBase.bloque2.entrada || "";
-  configB2SalidaInput.value = config.horarioBase.bloque2.salida || "";
   configFechaInicioBalanceInput.value = config.fechaInicioBalance || "";
 
   RH_DIAS_SEMANA.forEach(function (dia) {
@@ -56,7 +35,6 @@ function renderConfigForm() {
     input.checked = config.diasLaborales.indexOf(dia.id) !== -1;
   });
 
-  rhConfigRenderExplicacionMeta();
   rhConfigRenderActividades();
   renderSyncConfig();
 }
@@ -66,7 +44,9 @@ function renderConfigForm() {
 function rhConfigGuardarActividades(lista) {
   rhSaveConfig(Object.assign({}, rhLoadConfig(), { actividades: lista }));
   rhConfigRenderActividades();
-  rhMarcajeResetForm();
+  // Se rearman los botones de Marcaje con la lista nueva, sin borrar lo que
+  // esté escrito en el formulario.
+  rhMarcajeSetActividades(rhMarcajeActividadesPicker ? rhMarcajeActividadesPicker.obtener() : []);
   renderMarcajeTable();
 }
 
@@ -140,18 +120,11 @@ configForm.addEventListener("submit", function (e) {
   // Se parte de la configuración actual para no perder lo que no está en
   // este formulario (ej. la lista de actividades).
   var config = Object.assign({}, rhLoadConfig(), {
-    metaSemanal: Number(configMetaSemanalInput.value) || 0,
-    horarioBase: {
-      bloque1: { entrada: configB1EntradaInput.value, salida: configB1SalidaInput.value },
-      bloque2: { entrada: configB2EntradaInput.value, salida: configB2SalidaInput.value }
-    },
-    bloque2Activo: configB2ActivoInput.checked,
     diasLaborales: diasLaborales,
     fechaInicioBalance: configFechaInicioBalanceInput.value || null
   });
 
   rhSaveConfig(config);
-  rhConfigRenderExplicacionMeta();
   rhShowAlert("Configuración guardada.", "success");
 });
 

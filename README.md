@@ -13,12 +13,19 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
   office, Ensayos PAES y "Otro" para escribir una); nota/bitácora; historial
   mensual (en el celular se ve como tarjetas) con fines de semana y feriados en rojo y "no
   convocado" en ámbar. Si guardas una jornada en una fecha que ya tenía registro, se **suma** a lo
-  existente (con aviso) en vez de reemplazarlo.
+  existente (con aviso) en vez de reemplazarlo. Al editar un día y cambiarle la fecha, la jornada
+  completa (horas, nota y actividades) se mueve a la nueva fecha.
 - **Licencias y Feriados**: licencia médica, permiso especial, feriado, *No convocado* u otro, cada
   uno con rango de fechas; botón para agregar de una vez los **feriados nacionales de Chile** del
   año que caen en días hábiles.
-- **Estadísticas** (uso personal, no se informa); **cada cuadro tiene su propio selector de mes**
-  con flechas, independiente de los demás:
+- **Arreglo de horas**: cuántas horas te deben (o debes) según tu contrato, en horas, jornadas y
+  semanas (lunes a viernes), para el período que elijas (todo, un mes o fechas a elección). Incluye
+  detalle por mes, horas trabajadas en jornada de mañana/tarde (respaldo), otras equivalencias y un
+  botón para copiar un resumen y enviarlo. Ahí se configuran las horas semanales del contrato
+  (con cambios desde una fecha, sin alterar los meses anteriores), los horarios de las jornadas de
+  mañana y tarde, y qué cuenta como "una jornada" al cobrar.
+- **Estadísticas** (uso personal, no se informa); **cada cuadro tiene su propio selector de
+  período**: mes con flechas, todo el historial o fechas a elección, independiente de los demás:
   - Cuota del mes en horas y porcentaje, con el cálculo explicado (días hábiles − feriados − no
     convocados × horas por día) y el ritmo necesario por semana y por día hábil.
   - **Por revisar**: feriados nacionales sin marcar, días hábiles sin registro y días con horas
@@ -37,9 +44,9 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
   del mes (sin balance a favor/en contra) y detalle día por día con horarios AM/PM, actividades y
   días rojos (fines de semana/feriados); incluye botón Imprimir / PDF.
 - **Funciones y Proyectos**: bitácora aparte de responsabilidades o proyectos asignados.
-- **Configuración**: horas por semana (la meta de cada mes se calcula sola: horas por día hábil ×
-  días hábiles reales del mes), horario base, días laborales, fecha de inicio del seguimiento,
-  lista de actividades habituales y una Papelera con lo eliminado (recuperable por 30 días).
+- **Configuración**: días laborales, fecha de inicio del seguimiento, sincronización, lista de
+  actividades habituales y una Papelera con lo eliminado (recuperable por 30 días). La meta de
+  cada mes se calcula sola: horas semanales ÷ días laborales × días hábiles reales del mes.
 - **Exportar a Excel**: reporte `.xlsx` por rango de fechas con total del período, hoja "Informe"
   lista para capturar y hoja opcional de proyectos.
 - **Respaldo**: exportar/importar todos los datos en `.json` (la importación nunca sobrescribe un

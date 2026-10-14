@@ -54,15 +54,21 @@ var RH_ACTIVIDADES_ALIAS = {
 // reales de ese mes. `metaMensual` queda solo para leer respaldos antiguos.
 
 var RH_CONFIG_DEFAULT = {
-  metaSemanal: 20,
+  metaSemanal: 22, // horas semanales de base (antes de cualquier cambio de contrato)
   metaMensual: 86.67,
+  // Cambios de contrato con fecha: [{ desde: "YYYY-MM-DD", horasSemanales }].
+  contratoCambios: [],
+  // Jornada de mañana (bloque1) y de tarde (bloque2): se usan para
+  // autocompletar el marcaje y para traducir horas a jornadas al cobrarlas.
   horarioBase: {
     bloque1: { entrada: "09:00", salida: "13:00" },
-    bloque2: { entrada: "14:00", salida: "18:00" }
+    bloque2: { entrada: "14:30", salida: "18:00" }
   },
   bloque2Activo: false,
   diasLaborales: [1, 2, 3, 4, 5], // 0=domingo ... 6=sábado
   fechaInicioBalance: null, // se autocompleta con el primer registro
+  // Qué se considera "una jornada" al expresar horas a cobrar (ver arreglo.js).
+  arregloUnidad: "contrato",
   actividades: RH_ACTIVIDADES_DEFAULT.slice()
 };
 

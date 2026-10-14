@@ -244,6 +244,7 @@ function rhLoadConfig() {
     merged.horarioBase.bloque1 = Object.assign({}, RH_CONFIG_DEFAULT.horarioBase.bloque1, (parsed.horarioBase || {}).bloque1 || {});
     merged.horarioBase.bloque2 = Object.assign({}, RH_CONFIG_DEFAULT.horarioBase.bloque2, (parsed.horarioBase || {}).bloque2 || {});
     merged.diasLaborales = Array.isArray(parsed.diasLaborales) ? parsed.diasLaborales : RH_CONFIG_DEFAULT.diasLaborales.slice();
+    merged.contratoCambios = Array.isArray(parsed.contratoCambios) ? parsed.contratoCambios : [];
     merged.actividades = Array.isArray(parsed.actividades)
       ? rhNormalizarActividades(parsed.actividades)
       : RH_ACTIVIDADES_DEFAULT.slice();
@@ -297,9 +298,27 @@ function rhBalanceStartDate() {
 // La meta de un mes es la suma de lo esperado en sus días: un mes con 22 días
 // hábiles pide 88 h y uno con 21 pide 84 h (antes era un 86,67 h fijo).
 
-function rhMetaDiariaMinutos(config) {
+// Horas semanales del contrato vigentes en una fecha: las de base, o las del
+// último cambio de contrato que ya regía ese día. Así, si el contrato sube de
+// 20 h a 22 h desde cierta fecha, los meses anteriores no se recalculan.
+function rhHorasSemanalesEn(iso, config) {
+  config = config || rhLoadConfig();
+  var horas = Number(config.metaSemanal) || 0;
+  var desde = "";
+  (config.contratoCambios || []).forEach(function (c) {
+    if (!c || !c.desde || rhCompareISO(c.desde, iso) > 0) return;
+    if (rhCompareISO(c.desde, desde) >= 0) {
+      desde = c.desde;
+      horas = Number(c.horasSemanales) || 0;
+    }
+  });
+  return horas;
+}
+
+// Horas por día hábil (en minutos) vigentes en una fecha (hoy si no se indica).
+function rhMetaDiariaMinutos(config, iso) {
   var diasPorSemana = config.diasLaborales.length || 5;
-  return rhHoursToMinutes(config.metaSemanal) / diasPorSemana;
+  return rhHoursToMinutes(rhHorasSemanalesEn(iso || rhTodayISO(), config)) / diasPorSemana;
 }
 
 function rhEsDiaLaboral(iso, config) {
@@ -312,7 +331,7 @@ function rhMinutosEsperadosDia(iso, config) {
   if (!rhEsDiaLaboral(iso, config)) return 0;
   if (rhCompareISO(iso, rhBalanceStartDate()) < 0) return 0;
   if (rhDiaAjustaMeta(iso)) return 0;
-  return rhMetaDiariaMinutos(config);
+  return rhMetaDiariaMinutos(config, iso);
 }
 
 // Meta (minutos esperados) de un rango completo, incluidos los días futuros.

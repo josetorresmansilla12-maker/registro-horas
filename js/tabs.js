@@ -2,7 +2,7 @@
 
 // ---------- Tabs ----------
 
-var rhTabIds = ["marcaje", "estadisticas", "licencias", "proyectos", "informe", "config"];
+var rhTabIds = ["marcaje", "estadisticas", "arreglo", "licencias", "proyectos", "informe", "config"];
 
 function rhActivateTab(tab) {
   rhTabIds.forEach(function (id) {
@@ -13,6 +13,7 @@ function rhActivateTab(tab) {
   });
 
   if (tab === "estadisticas") renderEstadisticas();
+  if (tab === "arreglo") renderArreglo();
   if (tab === "licencias") renderLicencias();
   if (tab === "proyectos") renderProyectos();
   if (tab === "informe") renderInforme();

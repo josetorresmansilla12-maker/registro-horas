@@ -25,6 +25,7 @@
   <nav class="tabs" id="tabs">
     <button type="button" class="tab-btn active" id="tab-marcaje-btn" data-tab="marcaje">Marcaje</button>
     <button type="button" class="tab-btn" id="tab-estadisticas-btn" data-tab="estadisticas">Estadísticas</button>
+    <button type="button" class="tab-btn" id="tab-arreglo-btn" data-tab="arreglo">Arreglo de horas</button>
     <button type="button" class="tab-btn" id="tab-licencias-btn" data-tab="licencias">Licencias y Feriados</button>
     <button type="button" class="tab-btn" id="tab-proyectos-btn" data-tab="proyectos">Funciones y Proyectos</button>
     <button type="button" class="tab-btn" id="tab-informe-btn" data-tab="informe">Informe</button>
@@ -134,13 +135,13 @@
     </section>
 
     <!-- ===================== TAB: ESTADÍSTICAS ===================== -->
-    <!-- Cada cuadro tiene su propio selector de mes (se arma en estadisticas.js),
-         para cambiar de mes sin tener que subir y bajar por la pantalla. -->
+    <!-- Cada cuadro tiene su propio selector de período (mes con flechas, todo o
+         fechas a elección), que se arma en periodo.js. -->
     <section id="tab-estadisticas" class="tab-panel hidden">
       <!-- Gráfico principal: cuota del mes (horas + porcentaje) -->
       <section class="stat-card stat-hero">
-        <div class="nav-mes" id="nav-mes-cuota"></div>
-        <span class="stat-label">Cuota de horas del mes</span>
+        <div class="periodo" id="periodo-cuota"></div>
+        <span class="stat-label" id="stats-cuota-titulo">Cuota de horas del mes</span>
         <div class="stat-hero-body">
           <div class="gauge" id="stats-gauge-mes"></div>
           <div class="stat-hero-figures">
@@ -165,7 +166,7 @@
       <!-- Días que pueden estar afectando el cálculo -->
       <section class="form-section revisar-section" id="stats-revisar-section">
         <h2>⚠️ Por revisar <span class="label-hint" id="stats-revisar-count"></span></h2>
-        <div class="nav-mes" id="nav-mes-revisar"></div>
+        <div class="periodo" id="periodo-revisar"></div>
         <p class="label-hint" id="stats-revisar-hint">Estos días pueden estar afectando tu cálculo de horas. Revísalos cuando puedas.</p>
         <ul class="revisar-list" id="stats-revisar-list"></ul>
       </section>
@@ -173,7 +174,7 @@
       <!-- Balance: siempre por mes calendario (del 1 al último día) -->
       <section class="form-section">
         <h2>Balance de horas <span class="label-hint">(solo para ti, no se informa)</span></h2>
-        <div class="nav-mes" id="nav-mes-balance"></div>
+        <div class="periodo" id="periodo-balance"></div>
         <p class="label-hint" id="stats-balance-explica">Horas trabajadas menos las esperadas, contando hasta hoy.</p>
         <div class="balance-grid">
           <div class="balance-donut-card">
@@ -211,7 +212,7 @@
       <!-- Asistencia con filtro Mes / Semana / Día -->
       <section class="form-section">
         <h2>Asistencia</h2>
-        <div class="nav-mes" id="nav-mes-asistencia"></div>
+        <div class="periodo" id="periodo-asistencia"></div>
         <div class="segmented segmented-ancho" id="stats-asistencia-vista" role="tablist" aria-label="Ver asistencia por">
           <button type="button" class="segmented-btn" data-vista="mes" role="tab">Mes</button>
           <button type="button" class="segmented-btn" data-vista="semana" role="tab">Semana</button>
@@ -223,7 +224,7 @@
       <!-- Otras estadísticas útiles del mes -->
       <section class="form-section">
         <h2>Más estadísticas del mes</h2>
-        <div class="nav-mes" id="nav-mes-mas"></div>
+        <div class="periodo" id="periodo-mas"></div>
         <div class="mini-stats" id="stats-mini"></div>
         <h3 class="subseccion">Horas por día de la semana</h3>
         <div class="barras" id="stats-dias-semana"></div>
@@ -232,12 +233,126 @@
       <!-- Actividades marcadas en el Marcaje -->
       <section class="form-section">
         <h2>Actividades frecuentes</h2>
-        <div class="nav-mes" id="nav-mes-actividades"></div>
-        <div class="segmented segmented-ancho" id="stats-actividades-alcance" aria-label="Período">
-          <button type="button" class="segmented-btn" data-alcance="mes">Mes elegido</button>
-          <button type="button" class="segmented-btn" data-alcance="todo">Todo el historial</button>
-        </div>
+        <div class="periodo" id="periodo-actividades"></div>
         <div class="barras barras-actividades" id="stats-actividades"></div>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: ARREGLO DE HORAS ===================== -->
+    <!-- Cuántas horas te deben (o debes) según tu contrato, expresadas en horas,
+         jornadas y semanas, con el detalle para respaldarlo. -->
+    <section id="tab-arreglo" class="tab-panel hidden">
+      <section class="stat-card stat-hero arreglo-hero">
+        <div class="periodo" id="periodo-arreglo"></div>
+        <span class="stat-label" id="arreglo-titulo">Saldo de horas</span>
+        <div class="arreglo-total" id="arreglo-total"></div>
+        <div class="arreglo-equivalencias" id="arreglo-equivalencias"></div>
+        <p class="hero-explica" id="arreglo-explica"></p>
+        <div class="form-actions arreglo-acciones">
+          <button type="button" class="btn btn-primary" id="arreglo-copiar-btn">📋 Copiar resumen para enviar</button>
+        </div>
+        <textarea class="arreglo-resumen hidden" id="arreglo-resumen" rows="9" readonly aria-label="Resumen para enviar"></textarea>
+      </section>
+
+      <section class="form-section">
+        <h2>¿En qué horario trabajaste?</h2>
+        <p class="label-hint">Horas que caen dentro de cada jornada configurada: sirve para respaldar las tardes trabajadas.</p>
+        <div class="barras" id="arreglo-franjas"></div>
+      </section>
+
+      <section class="form-section">
+        <h2>Detalle por mes</h2>
+        <div class="table-wrap">
+          <table class="data-table tabla-arreglo">
+            <thead>
+              <tr><th>Mes</th><th>Trabajé</th><th>Contrato</th><th>Saldo</th><th id="arreglo-col-jornadas">Jornadas</th></tr>
+            </thead>
+            <tbody id="arreglo-meses-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Otras equivalencias</h2>
+        <p class="label-hint">El mismo saldo expresado en cada tipo de jornada (las semanas son de lunes a viernes).</p>
+        <div class="table-wrap">
+          <table class="data-table tabla-arreglo">
+            <thead><tr><th>Si una jornada es…</th><th>Jornadas</th><th>Semanas</th></tr></thead>
+            <tbody id="arreglo-equiv-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Datos del cálculo</h2>
+        <form id="arreglo-form" novalidate>
+          <h3 class="subseccion">Contrato</h3>
+          <div class="field">
+            <label for="arreglo-horas-base">Horas semanales del contrato <span class="label-hint">(desde el inicio)</span></label>
+            <input type="number" id="arreglo-horas-base" min="0" max="80" step="0.5" />
+          </div>
+          <ul class="contrato-cambios" id="arreglo-cambios-list"></ul>
+          <details class="contrato-agregar">
+            <summary>¿Cambió tu contrato desde una fecha? Agrega el cambio</summary>
+            <div class="field-row">
+              <div class="field">
+                <label for="arreglo-cambio-desde">Desde</label>
+                <input type="date" id="arreglo-cambio-desde" />
+              </div>
+              <div class="field">
+                <label for="arreglo-cambio-horas">Horas semanales</label>
+                <input type="number" id="arreglo-cambio-horas" min="0" max="80" step="0.5" />
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-small" id="arreglo-cambio-agregar">Agregar cambio</button>
+          </details>
+          <p class="config-explica" id="arreglo-contrato-explica"></p>
+
+          <h3 class="subseccion">Jornadas</h3>
+          <div class="block-group">
+            <h3>Jornada de mañana</h3>
+            <div class="field-row">
+              <div class="field">
+                <label for="arreglo-b1-entrada">Entrada</label>
+                <input type="time" id="arreglo-b1-entrada" />
+              </div>
+              <div class="field">
+                <label for="arreglo-b1-salida">Salida</label>
+                <input type="time" id="arreglo-b1-salida" />
+              </div>
+            </div>
+          </div>
+          <div class="block-group">
+            <div class="block-group-header">
+              <h3>Jornada de tarde</h3>
+              <label class="switch-option">
+                <input type="checkbox" id="arreglo-b2-activo" />
+                Proponerla al registrar un día
+              </label>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="arreglo-b2-entrada">Entrada</label>
+                <input type="time" id="arreglo-b2-entrada" />
+              </div>
+              <div class="field">
+                <label for="arreglo-b2-salida">Salida</label>
+                <input type="time" id="arreglo-b2-salida" />
+              </div>
+            </div>
+          </div>
+
+          <h3 class="subseccion">¿Qué cuenta como una jornada al cobrar?</h3>
+          <div class="field">
+            <label for="arreglo-unidad">Una jornada equivale a</label>
+            <select id="arreglo-unidad"></select>
+          </div>
+          <p class="label-hint" id="arreglo-unidad-explica"></p>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar datos del cálculo</button>
+          </div>
+        </form>
       </section>
     </section>
 
@@ -416,49 +531,12 @@
 
     <section id="tab-config" class="tab-panel hidden">
       <section class="form-section">
-        <h2>Metas de horas</h2>
+        <h2>Contrato y jornadas</h2>
+        <p class="config-explica">Las horas semanales de tu contrato y los horarios de tus jornadas (mañana y tarde) se configuran en la pestaña <strong>Arreglo de horas</strong>, junto al cálculo de las horas que te deben.</p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary btn-small" id="config-ir-arreglo">Ir a Arreglo de horas</button>
+        </div>
         <form id="config-form" novalidate>
-          <div class="field">
-            <label for="config-meta-semanal">Horas requeridas por semana</label>
-            <input type="number" id="config-meta-semanal" min="0" step="0.5" />
-          </div>
-          <p class="config-explica" id="config-meta-explica"></p>
-
-          <h2>Horario base</h2>
-          <p class="label-hint">Se usa para autocompletar el marcaje de un nuevo día.</p>
-          <div class="block-group">
-            <h3>Bloque 1</h3>
-            <div class="field-row">
-              <div class="field">
-                <label for="config-b1-entrada">Entrada</label>
-                <input type="time" id="config-b1-entrada" />
-              </div>
-              <div class="field">
-                <label for="config-b1-salida">Salida</label>
-                <input type="time" id="config-b1-salida" />
-              </div>
-            </div>
-          </div>
-          <div class="block-group">
-            <div class="block-group-header">
-              <h3>Bloque 2</h3>
-              <label class="switch-option">
-                <input type="checkbox" id="config-b2-activo" />
-                Activar por defecto
-              </label>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="config-b2-entrada">Entrada</label>
-                <input type="time" id="config-b2-entrada" />
-              </div>
-              <div class="field">
-                <label for="config-b2-salida">Salida</label>
-                <input type="time" id="config-b2-salida" />
-              </div>
-            </div>
-          </div>
-
           <h2>Días laborales</h2>
           <div class="dias-laborales" id="config-dias-laborales"></div>
 
@@ -608,6 +686,7 @@
   <script src="js/storage.js"></script>
   <script src="js/alerts.js"></script>
   <script src="js/actividades.js"></script>
+  <script src="js/periodo.js"></script>
   <script src="js/tabs.js"></script>
   <script src="js/marcaje.js"></script>
   <script src="js/estadisticas.js"></script>
@@ -615,6 +694,7 @@
   <script src="js/proyectos.js"></script>
   <script src="js/papelera.js"></script>
   <script src="js/informe.js"></script>
+  <script src="js/arreglo.js"></script>
   <script src="js/config.js"></script>
   <script src="js/export.js"></script>
   <script src="js/backup.js"></script>

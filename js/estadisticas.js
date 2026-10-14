@@ -2,8 +2,9 @@
 
 // ---------- Tab: Estadísticas ----------
 //
-// Todo lo de esta pestaña se calcula para el mes elegido arriba (por defecto
-// el mes en curso). Es información personal: no se informa a la jefatura.
+// Cada cuadro tiene su propio período (un mes con flechas, todo el historial
+// o las fechas que elijas), independiente de los demás. Es información
+// personal: no se informa a la jefatura.
 
 var RH_COLOR_PRINCIPAL = "#5c2d82";
 var RH_COLOR_VERDE = "#1f7a5c";
@@ -11,12 +12,10 @@ var RH_COLOR_ROJO = "#c0453c";
 var RH_COLOR_PISTA = "#ece4f4";
 var RH_COLOR_TEXTO_SUAVE = "#6b6478";
 
-// Mes que muestra cada cuadro (independientes entre sí).
 var RH_CUADROS_STATS = ["cuota", "revisar", "balance", "asistencia", "mas", "actividades"];
-var rhStatsMeses = {};
-RH_CUADROS_STATS.forEach(function (c) { rhStatsMeses[c] = rhMonthRange(rhTodayISO()).start; });
+var rhStatsPeriodos = {};
+RH_CUADROS_STATS.forEach(function (c) { rhStatsPeriodos[c] = rhNuevoPeriodo("mes"); });
 var rhStatsVista = rhPrefGet("rh_pref_asistencia_vista", "mes");
-var rhStatsAlcanceActividades = rhPrefGet("rh_pref_actividades_alcance", "mes");
 var rhStatsDiaElegido = null;
 
 // Preferencias de vista (solo comodidad de este dispositivo).
@@ -162,87 +161,63 @@ function rhBalanceTagLabel(balanceMin, corto) {
 // ---------- Render principal ----------
 
 var RH_RENDER_CUADRO = {
-  cuota: function (mes) { rhStatsRenderCuota(mes); },
-  revisar: function (mes) { rhStatsRenderRevisar(mes); },
-  balance: function (mes) { rhStatsRenderBalance(mes); },
-  asistencia: function (mes) { rhStatsRenderAsistencia(mes); },
-  mas: function (mes) { rhStatsRenderMasEstadisticas(mes); },
-  actividades: function (mes) { rhStatsRenderActividades(mes); }
+  cuota: function (p) { rhStatsRenderCuota(p); },
+  revisar: function (p) { rhStatsRenderRevisar(p); },
+  balance: function (p) { rhStatsRenderBalance(p); },
+  asistencia: function (p) { rhStatsRenderAsistencia(p); },
+  mas: function (p) { rhStatsRenderMasEstadisticas(p); },
+  actividades: function (p) { rhStatsRenderActividades(p); }
 };
+
+function rhStatsRenderCuadro(cuadro) {
+  if (cuadro === "asistencia") rhStatsDiaElegido = null;
+  RH_RENDER_CUADRO[cuadro](rhPeriodoRango(rhStatsPeriodos[cuadro]));
+}
 
 function renderEstadisticas() {
   RH_CUADROS_STATS.forEach(function (c) {
-    rhStatsRenderNav(c);
-    RH_RENDER_CUADRO[c](rhStatsMeses[c]);
+    rhCrearSelectorPeriodo(rhEl("periodo-" + c), rhStatsPeriodos[c], function () { rhStatsRenderCuadro(c); });
+    RH_RENDER_CUADRO[c](rhPeriodoRango(rhStatsPeriodos[c]));
   });
 }
 
-function rhStatsCambiarMes(cuadro, nuevoMes) {
-  rhStatsMeses[cuadro] = rhMonthRange(nuevoMes).start;
-  if (cuadro === "asistencia") rhStatsDiaElegido = null;
-  rhStatsRenderNav(cuadro);
-  RH_RENDER_CUADRO[cuadro](rhStatsMeses[cuadro]);
+// Lleva un cuadro a un mes puntual (ej. al tocar un mes en "Mes a mes").
+function rhStatsIrAMes(cuadro, mes) {
+  var p = rhStatsPeriodos[cuadro];
+  p.modo = "mes";
+  p.mes = rhMonthRange(mes).start;
+  rhCrearSelectorPeriodo(rhEl("periodo-" + cuadro), p, function () { rhStatsRenderCuadro(cuadro); });
+  rhStatsRenderCuadro(cuadro);
 }
 
-function rhStatsMoverMes(cuadro, delta) {
-  var d = rhParseISO(rhStatsMeses[cuadro]);
-  d.setMonth(d.getMonth() + delta);
-  rhStatsCambiarMes(cuadro, rhDateToISO(d));
+// "pasado", "actual" o "futuro" según las fechas del período.
+function rhMomentoPeriodo(p) {
+  var hoy = rhTodayISO();
+  if (p.modo === "todo") return "pasado";
+  if (rhCompareISO(p.end, hoy) < 0) return "pasado";
+  if (rhCompareISO(p.start, hoy) > 0) return "futuro";
+  return "actual";
 }
 
-// Selector ◀ Mes Año ▶ de un cuadro (con "volver al mes actual" si hace falta).
-function rhStatsRenderNav(cuadro) {
-  var cont = rhEl("nav-mes-" + cuadro);
-  var mes = rhStatsMeses[cuadro];
-  rhClear(cont);
+// ---------- Cuota ----------
 
-  var prev = document.createElement("button");
-  prev.type = "button";
-  prev.className = "btn btn-icon nav-mes-btn";
-  prev.textContent = "◀";
-  prev.setAttribute("aria-label", "Mes anterior");
-  prev.addEventListener("click", function () { rhStatsMoverMes(cuadro, -1); });
-
-  var centro = document.createElement("div");
-  centro.className = "nav-mes-centro";
-  var nombre = document.createElement("span");
-  nombre.className = "nav-mes-nombre";
-  nombre.textContent = rhNombreMes(mes, true);
-  centro.appendChild(nombre);
-  if (mes !== rhMonthRange(rhTodayISO()).start) {
-    var hoy = document.createElement("button");
-    hoy.type = "button";
-    hoy.className = "btn-link";
-    hoy.textContent = "Volver al mes actual";
-    hoy.addEventListener("click", function () { rhStatsCambiarMes(cuadro, rhTodayISO()); });
-    centro.appendChild(hoy);
-  }
-
-  var next = document.createElement("button");
-  next.type = "button";
-  next.className = "btn btn-icon nav-mes-btn";
-  next.textContent = "▶";
-  next.setAttribute("aria-label", "Mes siguiente");
-  next.addEventListener("click", function () { rhStatsMoverMes(cuadro, 1); });
-
-  cont.appendChild(prev);
-  cont.appendChild(centro);
-  cont.appendChild(next);
-}
-
-// ---------- Cuota del mes ----------
-
-// Cuántos días hábiles tiene el mes y por qué se descuentan algunos, para
-// mostrar el cálculo de la cuota paso a paso.
+// Cuántos días hábiles tiene el rango y por qué se descuentan algunos, para
+// mostrar el cálculo de la cuota paso a paso. `grupos` cuenta los días con
+// meta según las horas por día vigentes (cambian si cambió el contrato).
 function rhStatsDesgloseCuota(range) {
   var config = rhLoadConfig();
   var inicio = rhBalanceStartDate();
-  var d = { habiles: 0, antes: 0, sinContrato: 0, feriados: 0, noConvocados: 0, licencias: 0, conMeta: 0 };
+  var d = { habiles: 0, antes: 0, sinContrato: 0, feriados: 0, noConvocados: 0, licencias: 0, conMeta: 0, grupos: {} };
   rhDaysBetweenInclusive(range.start, range.end).forEach(function (iso) {
     if (!rhEsDiaLaboral(iso, config)) return;
     d.habiles++;
     if (rhCompareISO(iso, inicio) < 0) { d.antes++; return; }
-    if (!rhDiaAjustaMeta(iso)) { d.conMeta++; return; }
+    if (!rhDiaAjustaMeta(iso)) {
+      d.conMeta++;
+      var m = Math.round(rhMetaDiariaMinutos(config, iso));
+      d.grupos[m] = (d.grupos[m] || 0) + 1;
+      return;
+    }
     var lic = rhLicenciaForDate(iso);
     var reg = rhGetRegistroByFecha(iso);
     if (lic && rhLicenciaAjustaMeta(lic)) {
@@ -258,15 +233,43 @@ function rhStatsDesgloseCuota(range) {
   return d;
 }
 
-function rhStatsRenderCuota(mes) {
+function rhHorasCorto(min) {
+  return rhMinutesToHM(min).replace(" 00m", "");
+}
+
+// "Cálculo: 22 días hábiles − 1 feriado = 21 días × 4h = 84h 00m."
+function rhStatsTextoCalculo(d, metaMin) {
+  if (d.habiles === 0) return "Este período no tiene días hábiles según tu configuración.";
+  var partes = [];
+  if (d.antes) partes.push(rhPlural(d.antes, "antes de tu inicio", "antes de tu inicio"));
+  if (d.sinContrato) partes.push(rhPlural(d.sinContrato, "aún no contratado", "aún no contratado"));
+  if (d.feriados) partes.push(rhPlural(d.feriados, "feriado", "feriados"));
+  if (d.noConvocados) partes.push(rhPlural(d.noConvocados, "no convocado", "no convocados"));
+  if (d.licencias) partes.push(rhPlural(d.licencias, "con licencia", "con licencia"));
+  var valores = Object.keys(d.grupos).map(Number).sort(function (a, b) { return a - b; });
+  var porDia;
+  if (valores.length <= 1) {
+    porDia = rhPlural(d.conMeta, "día", "días") + " × " + rhHorasCorto(valores[0] || 0);
+  } else {
+    porDia = valores.map(function (v) { return d.grupos[v] + " × " + rhHorasCorto(v); }).join(" + ") + " (cambio de contrato)";
+  }
+  if (!partes.length && valores.length <= 1) {
+    return "Cálculo: " + rhPlural(d.habiles, "día hábil", "días hábiles") + " × " + rhHorasCorto(valores[0] || 0) +
+      " = " + rhMinutesToHM(metaMin) + ".";
+  }
+  return "Cálculo: " + rhPlural(d.habiles, "día hábil", "días hábiles") +
+    (partes.length ? " − " + partes.join(" − ") : "") + " → " + porDia + " = " + rhMinutesToHM(metaMin) + ".";
+}
+
+function rhStatsRenderCuota(p) {
   var config = rhLoadConfig();
-  var range = rhMonthRange(mes);
-  var momento = rhMomentoMes(mes);
-  var metaMin = rhMetaMensualAjustada(mes);
-  var trabajadoMin = rhWorkedMinutesInRange(range.start, range.end);
+  var momento = rhMomentoPeriodo(p);
+  var metaMin = rhMetaEnRango(p.start, p.end);
+  var trabajadoMin = rhWorkedMinutesInRange(p.start, p.end);
   var pct = metaMin > 0 ? (trabajadoMin / metaMin) * 100 : 0;
   var cumplida = metaMin > 0 && trabajadoMin >= metaMin;
 
+  rhEl("stats-cuota-titulo").textContent = p.modo === "mes" ? "Cuota de horas del mes" : "Cuota de horas del período";
   rhRenderDonut(rhEl("stats-gauge-mes"), {
     total: metaMin,
     segmentos: [{ valor: Math.min(trabajadoMin, metaMin), color: cumplida ? RH_COLOR_VERDE : RH_COLOR_PRINCIPAL }],
@@ -291,61 +294,43 @@ function rhStatsRenderCuota(mes) {
     fila.classList.remove("hero-figure-extra");
   }
 
-  // El cálculo, paso a paso: días hábiles − días que no cuentan = días con
-  // meta × horas por día.
-  var d = rhStatsDesgloseCuota(range);
-  var metaDiaria = rhMetaDiariaMinutos(config);
-  var partes = [];
-  if (d.antes) partes.push(rhPlural(d.antes, "antes de tu inicio", "antes de tu inicio"));
-  if (d.sinContrato) partes.push(rhPlural(d.sinContrato, "aún no contratado", "aún no contratado"));
-  if (d.feriados) partes.push(rhPlural(d.feriados, "feriado", "feriados"));
-  if (d.noConvocados) partes.push(rhPlural(d.noConvocados, "no convocado", "no convocados"));
-  if (d.licencias) partes.push(rhPlural(d.licencias, "con licencia", "con licencia"));
-  var explica = rhEl("stats-hero-explica");
-  if (d.habiles === 0) {
-    explica.textContent = "Este mes no tiene días hábiles según tu configuración.";
-  } else {
-    explica.textContent = "Cálculo: " + rhPlural(d.habiles, "día hábil", "días hábiles") +
-      (partes.length ? " − " + partes.join(" − ") + " = " + rhPlural(d.conMeta, "día", "días") : "") +
-      " × " + rhMinutesToHM(metaDiaria).replace(" 00m", "") + " = " + rhMinutesToHM(metaMin) + ".";
-  }
+  rhEl("stats-hero-explica").textContent = rhStatsTextoCalculo(rhStatsDesgloseCuota(p), metaMin);
 
   var ritmoEl = rhEl("stats-hero-ritmo");
   rhClear(ritmoEl);
-  ritmoEl.classList.remove("hidden");
 
   if (momento === "futuro") {
     var f = document.createElement("span");
     f.className = "hero-ritmo-ok";
-    f.textContent = "Mes futuro: aún no hay horas. Si sabes de feriados o días sin convocatoria, márcalos y la cuota se ajusta sola.";
+    f.textContent = "Período futuro: aún no hay horas. Si sabes de feriados o días sin convocatoria, márcalos y la cuota se ajusta sola.";
     ritmoEl.appendChild(f);
     return;
   }
 
   if (momento === "pasado") {
-    var p = document.createElement("span");
-    p.className = "hero-ritmo-ok";
-    p.textContent = metaMin > 0
-      ? "Mes cerrado: cumpliste el " + Math.round(pct) + "% de la cuota (" + rhConSigno(trabajadoMin - metaMin) + ")."
-      : "Mes cerrado sin horas esperadas.";
-    ritmoEl.appendChild(p);
+    var pa = document.createElement("span");
+    pa.className = "hero-ritmo-ok";
+    pa.textContent = metaMin > 0
+      ? (p.modo === "mes" ? "Mes cerrado" : "En " + p.corta) + ": cumpliste el " + Math.round(pct) + "% de la cuota (" + rhConSigno(trabajadoMin - metaMin) + ")."
+      : "Sin horas esperadas en este período.";
+    ritmoEl.appendChild(pa);
     return;
   }
 
   if (faltanMin <= 0) {
     var ok = document.createElement("span");
     ok.className = "hero-ritmo-ok";
-    ok.textContent = "🎉 Ya cumpliste la cuota de horas de " + rhNombreMes(mes).toLowerCase() + ".";
+    ok.textContent = "🎉 Ya cumpliste la cuota de " + p.corta + ".";
     ritmoEl.appendChild(ok);
     return;
   }
 
-  // Ritmo necesario para cumplir lo que falta antes de fin de mes, contando
-  // solo los días hábiles que todavía tienen meta (sin feriados ni licencias).
+  // Ritmo necesario para cumplir lo que falta antes de que termine el período,
+  // contando solo los días hábiles que todavía tienen meta.
   var today = rhTodayISO();
-  var diasRestantesMes = rhDaysBetweenInclusive(today, range.end).length;
-  var semanasRestantes = Math.max(1, Math.ceil(diasRestantesMes / 7));
-  var diasHabilesRestantes = rhDaysBetweenInclusive(today, range.end).filter(function (iso) {
+  var diasRestantes = rhDaysBetweenInclusive(today, p.end);
+  var semanasRestantes = Math.max(1, Math.ceil(diasRestantes.length / 7));
+  var diasHabilesRestantes = diasRestantes.filter(function (iso) {
     return rhMinutosEsperadosDia(iso, config) > 0;
   }).length;
 
@@ -356,20 +341,18 @@ function rhStatsRenderCuota(mes) {
 
   var ul = document.createElement("ul");
   ul.className = "hero-ritmo-list";
-
   var liSemana = document.createElement("li");
   liSemana.className = "hero-ritmo-item ritmo-semana";
   liSemana.innerHTML = "<strong>~" + rhMinutesToHM(faltanMin / semanasRestantes) + "</strong> por semana " +
     "<em>(quedan " + rhPlural(semanasRestantes, "semana", "semanas") + ")</em>";
   ul.appendChild(liSemana);
-
   var liDia = document.createElement("li");
   liDia.className = "hero-ritmo-item ritmo-dia";
   if (diasHabilesRestantes > 0) {
     liDia.innerHTML = "<strong>~" + rhMinutesToHM(faltanMin / diasHabilesRestantes) + "</strong> por día " +
       "<em>(quedan " + rhPlural(diasHabilesRestantes, "día hábil", "días hábiles") + ")</em>";
   } else {
-    liDia.innerHTML = "<em>No quedan días hábiles en el mes.</em>";
+    liDia.innerHTML = "<em>No quedan días hábiles en el período.</em>";
   }
   ul.appendChild(liDia);
   ritmoEl.appendChild(ul);
@@ -392,9 +375,9 @@ function rhStatsBoton(texto, clase, alTocar) {
   return b;
 }
 
-function rhStatsRenderRevisar(mes) {
-  var range = rhMonthRange(mes);
-  var items = rhDiasPorRevisar(range.start, range.end);
+function rhStatsRenderRevisar(p) {
+  var config = rhLoadConfig();
+  var items = rhDiasPorRevisar(p.start, p.end);
   var section = rhEl("stats-revisar-section");
   var ul = rhEl("stats-revisar-list");
   rhClear(ul);
@@ -404,45 +387,69 @@ function rhStatsRenderRevisar(mes) {
   if (items.length === 0) {
     var ok = document.createElement("li");
     ok.className = "revisar-vacio";
-    ok.textContent = "✅ Todo en orden en " + rhNombreMes(mes).toLowerCase() + ": no hay días pendientes de revisar.";
+    ok.textContent = "✅ Todo en orden en " + p.corta + ": no hay días pendientes de revisar.";
     ul.appendChild(ok);
     return;
   }
 
-  var metaDiaria = rhMinutesToHM(rhMetaDiariaMinutos(rhLoadConfig())).replace(" 00m", "");
   var today = rhTodayISO();
 
-  items.forEach(function (it) {
+  // Si hay varios días sin registro, se agrupan en una sola tarjeta con un
+  // botón por fecha, para que la lista no se haga eterna.
+  var sinRegistro = items.filter(function (it) { return it.tipo === "sin_registro"; });
+  if (sinRegistro.length > 3) {
+    items = items.filter(function (it) { return it.tipo !== "sin_registro"; });
+    var debeMin = sinRegistro.reduce(function (s, it) { return s + rhMetaDiariaMinutos(config, it.iso); }, 0);
     var li = document.createElement("li");
-    li.className = "revisar-item revisar-" + it.tipo;
-    var fecha = rhDayOfWeekLabel(it.iso, true) + " " + rhFormatDateDisplay(it.iso);
-
+    li.className = "revisar-item revisar-sin_registro";
     var texto = document.createElement("div");
     texto.className = "revisar-texto";
     var strong = document.createElement("strong");
-    strong.textContent = fecha;
+    strong.textContent = sinRegistro.length + " días hábiles sin registro";
+    texto.appendChild(strong);
+    var det = document.createElement("span");
+    det.textContent = "Hoy cuentan como " + rhMinutesToHM(debeMin) + " que debes. Toca un día para registrarlo (o márcalo como no convocado desde el formulario).";
+    texto.appendChild(det);
+    li.appendChild(texto);
+    var fechas = document.createElement("div");
+    fechas.className = "revisar-acciones";
+    sinRegistro.forEach(function (it) {
+      fechas.appendChild(rhStatsBoton(rhDayOfWeekLabel(it.iso, true) + " " + rhFormatDateDisplay(it.iso).slice(0, 5), "btn-secondary",
+        function () { rhMarcajeAbrirFecha(it.iso); }));
+    });
+    li.appendChild(fechas);
+    ul.appendChild(li);
+  }
+
+  items.forEach(function (it) {
+    var metaDia = rhHorasCorto(rhMetaDiariaMinutos(config, it.iso));
+    var li = document.createElement("li");
+    li.className = "revisar-item revisar-" + it.tipo;
+    var texto = document.createElement("div");
+    texto.className = "revisar-texto";
+    var strong = document.createElement("strong");
+    strong.textContent = rhDayOfWeekLabel(it.iso, true) + " " + rhFormatDateDisplay(it.iso);
     texto.appendChild(strong);
     var detalle = document.createElement("span");
-
     var acciones = document.createElement("div");
     acciones.className = "revisar-acciones";
 
     if (it.tipo === "feriado") {
       var futuro = rhCompareISO(it.iso, today) > 0;
       detalle.textContent = "Feriado nacional (" + it.nombre + ") sin marcar: " +
-        (futuro ? "si no lo marcas, se contará en tu cuota como día a trabajar." : "hoy cuenta como día que debías trabajar (" + metaDiaria + ").");
+        (futuro ? "si no lo marcas, se contará en tu cuota como día a trabajar." : "hoy cuenta como día que debías trabajar (" + metaDia + ").");
       acciones.appendChild(rhStatsBoton("Marcar feriado", "btn-rojo", function () { rhStatsMarcarFeriado(it.iso, it.nombre); }));
     } else if (it.tipo === "conflicto") {
       detalle.textContent = "Tiene " + rhMinutesToHM(it.minutos) + " registradas, pero está dentro de “" +
         rhTipoLicenciaLabel(it.licencia.tipo) + "” (" + rhFormatDateDisplay(it.licencia.fechaInicio) + " al " +
-        rhFormatDateDisplay(it.licencia.fechaFin) + "). ¿Esas horas son de otro día? Si sí trabajaste ese día, sácalo del período en Licencias.";
+        rhFormatDateDisplay(it.licencia.fechaFin) + "). ¿Esas horas son de otro día? Ábrela y cámbiale la fecha; si sí trabajaste ese día, sácalo del período en Licencias.";
       acciones.appendChild(rhStatsBoton("Ver jornada", "btn-secondary", function () { rhMarcajeAbrirFecha(it.iso); }));
       acciones.appendChild(rhStatsBoton("Ver período", "btn-secondary", function () {
         rhActivateTab("licencias");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }));
     } else {
-      detalle.textContent = "Día hábil sin registro: cuenta como " + metaDiaria + " que debes. Si trabajaste, regístralo; si no te convocaron, márcalo.";
+      detalle.textContent = "Día hábil sin registro: cuenta como " + metaDia + " que debes. Si trabajaste, regístralo; si no te convocaron, márcalo.";
       acciones.appendChild(rhStatsBoton("Registrar", "btn-secondary", function () { rhMarcajeAbrirFecha(it.iso); }));
       acciones.appendChild(rhStatsBoton("No me convocaron", "btn-secondary", function () {
         rhLicenciaPrefillNoConvocado(it.iso);
@@ -457,44 +464,34 @@ function rhStatsRenderRevisar(mes) {
   });
 }
 
-// ---------- Balance (por mes calendario, hasta hoy) ----------
+// ---------- Balance (horas trabajadas − esperadas, contado hasta hoy) ----------
 
 // Balance de cada mes desde el inicio del seguimiento hasta el mes en curso.
 function rhStatsBalancesPorMes() {
   var hoyMes = rhMonthRange(rhTodayISO()).start;
-  var mes = rhMonthRange(rhBalanceStartDate()).start;
-  var filas = [];
-  var guard = 0;
-  while (rhCompareISO(mes, hoyMes) <= 0 && guard < 120) {
-    filas.push({ mes: mes, b: rhBalanceMes(mes) });
-    var d = rhParseISO(mes);
-    d.setMonth(d.getMonth() + 1);
-    mes = rhDateToISO(d);
-    guard++;
-  }
-  return filas;
+  return rhMesesEnRango(rhBalanceStartDate(), rhTodayISO())
+    .filter(function (mes) { return rhCompareISO(mes, hoyMes) <= 0; })
+    .map(function (mes) { return { mes: mes, b: rhBalanceMes(mes) }; });
 }
 
-function rhStatsRenderBalance(mes) {
-  var momento = rhMomentoMes(mes);
-  var range = rhMonthRange(mes);
-  var b = rhBalanceMes(mes);
-  rhEl("stats-balance-mes-titulo").textContent = "Balance de " + rhNombreMes(mes).toLowerCase();
+function rhStatsRenderBalance(p) {
+  var momento = rhMomentoPeriodo(p);
+  var b = rhBalancePeriodo(p.start, p.end);
+  rhEl("stats-balance-mes-titulo").textContent = p.modo === "mes" ? "Balance de " + p.corta : "Balance del período";
   rhRenderDonaBalance(rhEl("stats-balance-mes-donut"), b);
 
   var tag = rhEl("stats-balance-mes-tag");
   var sub = rhEl("stats-balance-mes-sub");
   if (momento === "futuro" || (b.esperadoMin === 0 && b.trabajadoMin === 0)) {
     tag.className = "balance-tag neutro";
-    tag.textContent = momento === "futuro" ? "Mes futuro" : "Sin horas aún";
+    tag.textContent = momento === "futuro" ? "Período futuro" : "Sin horas aún";
     sub.textContent = "";
   } else {
     tag.className = "balance-tag " + rhBalanceTagClass(b.balanceMin);
     tag.textContent = rhBalanceTagLabel(b.balanceMin, false);
-    var hastaTxt = momento === "actual"
-      ? "Del 1 al " + rhParseISO(b.hasta).getDate() + " de " + rhNombreMes(mes).toLowerCase() + " (hasta hoy)"
-      : "Del " + rhFormatDateShort(b.desde) + " al " + rhFormatDateShort(range.end);
-    sub.textContent = hastaTxt + ": trabajaste " + rhMinutesToHM(b.trabajadoMin) + " de " + rhMinutesToHM(b.esperadoMin) + " esperadas.";
+    sub.textContent = "Del " + rhFormatDateShort(b.desde) + " al " + rhFormatDateShort(b.hasta) +
+      (rhCompareISO(b.hasta, p.end) < 0 ? " (hasta hoy)" : "") + ": trabajaste " + rhMinutesToHM(b.trabajadoMin) +
+      " de " + rhMinutesToHM(b.esperadoMin) + " esperadas.";
   }
 
   var acum = rhCalcularBalance();
@@ -505,14 +502,14 @@ function rhStatsRenderBalance(mes) {
   rhEl("stats-balance-acum-sub").textContent = "Desde el " + rhFormatDateDisplay(acum.desde) + " hasta hoy: " +
     rhMinutesToHM(acum.trabajadoMin) + " de " + rhMinutesToHM(acum.esperadoMin) + " esperadas. Es la suma de todos los meses.";
 
-  rhEl("stats-balance-explica").textContent = "Se calcula por mes calendario (del 1 al último día). " +
-    "En el mes en curso cuenta solo hasta hoy, para que no aparezca como deuda lo que todavía no ocurre. " +
-    "Trabajas a honorario: es solo una referencia personal.";
+  rhEl("stats-balance-explica").textContent = "Horas trabajadas menos las que pedía tu contrato, contando solo hasta hoy " +
+    "(lo que todavía no ocurre no se cuenta como deuda). Trabajas a honorario: es una referencia personal; para cobrar horas usa la pestaña Arreglo de horas.";
 
-  var filas = rhStatsBalancesPorMes();
-  rhStatsRenderDonaMeses(filas);
-  rhStatsRenderDonaDias(mes);
-  rhStatsRenderHistoria(filas);
+  var todos = rhStatsBalancesPorMes();
+  var mesesPeriodo = rhMesesEnRango(p.start, p.end);
+  rhStatsRenderDonaMeses(todos.filter(function (f) { return mesesPeriodo.indexOf(f.mes) !== -1; }));
+  rhStatsRenderDonaDias(p);
+  rhStatsRenderHistoria(todos, mesesPeriodo);
 }
 
 // Cuántas horas te deben los meses a favor y cuántas debes en los meses en
@@ -541,14 +538,13 @@ function rhStatsRenderDonaMeses(filas) {
     " · Debes " + rhMinutesToHM(contra) + (mesesContra.length ? " (" + mesesContra.join(", ") + ")" : "") + ".";
 }
 
-// Días hábiles del mes: cuáles se trabajaron, cuáles no contaban (feriado, no
-// convocado, licencia) y cuáles quedaron sin registro (esos son los que
-// generan horas en contra).
-function rhStatsRenderDonaDias(mes) {
+// Días hábiles del período: trabajados, justificados (feriado, no convocado,
+// licencia) y sin registro (esos son los que generan horas en contra).
+function rhStatsRenderDonaDias(p) {
   var config = rhLoadConfig();
   var today = rhTodayISO();
   var c = { trabajados: 0, justificados: 0, sinRegistro: 0, proximos: 0 };
-  rhDaysBetweenInclusive(rhMonthRange(mes).start, rhMonthRange(mes).end).forEach(function (iso) {
+  rhDaysBetweenInclusive(p.start, p.end).forEach(function (iso) {
     var e = rhEstadoDia(iso, config, today);
     if (!e.laboral || e.clave === "fuera") return;
     if (e.clave === "cumplido") c.trabajados++;
@@ -557,7 +553,7 @@ function rhStatsRenderDonaDias(mes) {
     else c.justificados++;
   });
   var total = c.trabajados + c.justificados + c.sinRegistro + c.proximos;
-  rhEl("stats-balance-dias-titulo").textContent = "Días hábiles de " + rhNombreMes(mes).toLowerCase();
+  rhEl("stats-balance-dias-titulo").textContent = p.modo === "mes" ? "Días hábiles de " + p.corta : "Días hábiles del período";
   rhRenderDonut(rhEl("stats-balance-dias-donut"), {
     total: total,
     segmentos: [
@@ -573,13 +569,13 @@ function rhStatsRenderDonaDias(mes) {
   });
   var partes = [rhPlural(c.trabajados, "trabajado", "trabajados")];
   if (c.justificados) partes.push(c.justificados + " sin convocatoria/feriado");
-  if (c.sinRegistro) partes.push(rhPlural(c.sinRegistro, "sin registro", "sin registro"));
-  if (c.proximos) partes.push(rhPlural(c.proximos, "por venir", "por venir"));
+  if (c.sinRegistro) partes.push(c.sinRegistro + " sin registro");
+  if (c.proximos) partes.push(c.proximos + " por venir");
   rhEl("stats-balance-dias-sub").textContent = partes.join(" · ") + ".";
 }
 
-// Barras divergentes con el balance de cada mes, desde el inicio hasta hoy.
-function rhStatsRenderHistoria(filas) {
+// Barras divergentes con el balance de cada mes; se destacan los del período.
+function rhStatsRenderHistoria(filas, mesesPeriodo) {
   var cont = rhEl("stats-balance-historia");
   rhClear(cont);
   var hoyMes = rhMonthRange(rhTodayISO()).start;
@@ -592,7 +588,7 @@ function rhStatsRenderHistoria(filas) {
   filas.forEach(function (f) {
     var fila = document.createElement("button");
     fila.type = "button";
-    fila.className = "hist-fila" + (f.mes === rhStatsMeses.balance ? " elegido" : "");
+    fila.className = "hist-fila" + (mesesPeriodo.indexOf(f.mes) !== -1 ? " elegido" : "");
     fila.setAttribute("aria-label", rhNombreMes(f.mes, true) + ": " + rhConSigno(f.b.balanceMin));
 
     var etiqueta = document.createElement("span");
@@ -608,8 +604,7 @@ function rhStatsRenderHistoria(filas) {
     var pos = document.createElement("span");
     pos.className = "hist-mitad hist-pos";
     var relleno = document.createElement("i");
-    var pctAncho = Math.max(2, Math.round((Math.abs(f.b.balanceMin) / maxAbs) * 100));
-    relleno.style.width = pctAncho + "%";
+    relleno.style.width = Math.max(2, Math.round((Math.abs(f.b.balanceMin) / maxAbs) * 100)) + "%";
     if (f.b.balanceMin < 0) neg.appendChild(relleno);
     else pos.appendChild(relleno);
     barra.appendChild(neg);
@@ -621,7 +616,7 @@ function rhStatsRenderHistoria(filas) {
     valor.textContent = rhConSigno(f.b.balanceMin);
     fila.appendChild(valor);
 
-    fila.addEventListener("click", function () { rhStatsCambiarMes("balance", f.mes); });
+    fila.addEventListener("click", function () { rhStatsIrAMes("balance", f.mes); });
     cont.appendChild(fila);
   });
 
@@ -633,7 +628,7 @@ function rhStatsRenderHistoria(filas) {
 
 // ---------- Asistencia: Mes (calendario) / Semana / Día ----------
 
-function rhStatsRenderAsistencia(mes) {
+function rhStatsRenderAsistencia(p) {
   rhEl("stats-asistencia-vista").querySelectorAll(".segmented-btn").forEach(function (b) {
     var activo = b.getAttribute("data-vista") === rhStatsVista;
     b.classList.toggle("activo", activo);
@@ -641,9 +636,9 @@ function rhStatsRenderAsistencia(mes) {
   });
   var body = rhEl("stats-asistencia-body");
   rhClear(body);
-  if (rhStatsVista === "semana") rhStatsVistaSemanas(body, mes);
-  else if (rhStatsVista === "dia") rhStatsVistaDias(body, mes);
-  else rhStatsVistaCalendario(body, mes);
+  if (rhStatsVista === "semana") rhStatsVistaSemanas(body, p);
+  else if (rhStatsVista === "dia") rhStatsVistaDias(body, p);
+  else rhStatsVistaCalendario(body, p);
 }
 
 rhEl("stats-asistencia-vista").addEventListener("click", function (e) {
@@ -651,7 +646,7 @@ rhEl("stats-asistencia-vista").addEventListener("click", function (e) {
   if (!b) return;
   rhStatsVista = b.getAttribute("data-vista");
   rhPrefSet("rh_pref_asistencia_vista", rhStatsVista);
-  rhStatsRenderAsistencia(rhStatsMeses.asistencia);
+  rhStatsRenderAsistencia(rhPeriodoRango(rhStatsPeriodos.asistencia));
 });
 
 function rhStatsPill(estado) {
@@ -671,73 +666,85 @@ var RH_LEYENDA_ESTADOS = [
   { clave: "sin_contrato", label: "Aún no contratado" }
 ];
 
-function rhStatsVistaCalendario(body, mes) {
+// Un calendario por cada mes que toca el período (los días fuera del
+// período se ven atenuados).
+function rhStatsVistaCalendario(body, p) {
   var config = rhLoadConfig();
   var today = rhTodayISO();
-  var range = rhMonthRange(mes);
-  var dias = rhDaysBetweenInclusive(range.start, range.end);
-
-  var cal = document.createElement("div");
-  cal.className = "cal";
-  ["L", "M", "M", "J", "V", "S", "D"].forEach(function (l, i) {
-    var h = document.createElement("span");
-    h.className = "cal-cab" + (i >= 5 ? " rojo" : "");
-    h.textContent = l;
-    cal.appendChild(h);
-  });
-
-  var offset = (rhParseISO(range.start).getDay() + 6) % 7;
-  for (var i = 0; i < offset; i++) {
-    var vacio = document.createElement("span");
-    vacio.className = "cal-vacio";
-    cal.appendChild(vacio);
-  }
-
+  var meses = rhMesesEnRango(p.start, p.end);
   var conteo = {};
-  dias.forEach(function (iso) {
-    var e = rhEstadoDia(iso, config, today);
-    conteo[e.clave] = (conteo[e.clave] || 0) + 1;
-
-    var celda = document.createElement("button");
-    celda.type = "button";
-    celda.className = "cal-dia est-" + e.clave + (e.rojo ? " rojo" : "") +
-      (iso === today ? " es-hoy" : "") + (iso === rhStatsDiaElegido ? " elegido" : "");
-    celda.setAttribute("aria-label", rhFormatDateDisplay(iso) + ": " + e.label + (e.minutos ? ", " + rhMinutesToHM(e.minutos) : ""));
-
-    var num = document.createElement("span");
-    num.className = "cal-num";
-    num.textContent = rhParseISO(iso).getDate();
-    celda.appendChild(num);
-
-    var info = document.createElement("span");
-    info.className = "cal-info";
-    if (e.minutos > 0) info.textContent = rhMinutosCorto(e.minutos);
-    else if (e.clave === "feriado") info.textContent = "Fer.";
-    else if (e.clave === "no_convocado") info.textContent = "N/C";
-    else if (e.clave === "licencia") info.textContent = "Lic.";
-    else if (e.clave === "sin_registro") info.textContent = "?";
-    celda.appendChild(info);
-    if (e.conflicto) {
-      var alerta = document.createElement("span");
-      alerta.className = "cal-alerta";
-      alerta.textContent = "!";
-      celda.appendChild(alerta);
-    }
-
-    celda.addEventListener("click", function () {
-      rhStatsDiaElegido = iso;
-      cal.querySelectorAll(".cal-dia.elegido").forEach(function (c) { c.classList.remove("elegido"); });
-      celda.classList.add("elegido");
-      rhStatsRenderDetalleDia(detalle, iso);
-    });
-    cal.appendChild(celda);
-  });
-  body.appendChild(cal);
 
   var detalle = document.createElement("div");
   detalle.className = "cal-detalle";
+
+  meses.forEach(function (mes) {
+    var range = rhMonthRange(mes);
+    if (meses.length > 1) {
+      var tituloMes = document.createElement("h3");
+      tituloMes.className = "subseccion cal-titulo-mes";
+      tituloMes.textContent = rhNombreMes(mes, true);
+      body.appendChild(tituloMes);
+    }
+    var cal = document.createElement("div");
+    cal.className = "cal";
+    ["L", "M", "M", "J", "V", "S", "D"].forEach(function (l, i) {
+      var h = document.createElement("span");
+      h.className = "cal-cab" + (i >= 5 ? " rojo" : "");
+      h.textContent = l;
+      cal.appendChild(h);
+    });
+    var offset = (rhParseISO(range.start).getDay() + 6) % 7;
+    for (var i = 0; i < offset; i++) {
+      var vacio = document.createElement("span");
+      vacio.className = "cal-vacio";
+      cal.appendChild(vacio);
+    }
+
+    rhDaysBetweenInclusive(range.start, range.end).forEach(function (iso) {
+      var dentro = rhIsDateInRange(iso, p.start, p.end);
+      var e = rhEstadoDia(iso, config, today);
+      if (dentro) conteo[e.clave] = (conteo[e.clave] || 0) + 1;
+
+      var celda = document.createElement("button");
+      celda.type = "button";
+      celda.className = "cal-dia est-" + e.clave + (e.rojo ? " rojo" : "") +
+        (iso === today ? " es-hoy" : "") + (iso === rhStatsDiaElegido ? " elegido" : "") + (dentro ? "" : " fuera-periodo");
+      celda.setAttribute("aria-label", rhFormatDateDisplay(iso) + ": " + e.label + (e.minutos ? ", " + rhMinutesToHM(e.minutos) : ""));
+
+      var num = document.createElement("span");
+      num.className = "cal-num";
+      num.textContent = rhParseISO(iso).getDate();
+      celda.appendChild(num);
+
+      var info = document.createElement("span");
+      info.className = "cal-info";
+      if (e.minutos > 0) info.textContent = rhMinutosCorto(e.minutos);
+      else if (e.clave === "feriado") info.textContent = "Fer.";
+      else if (e.clave === "no_convocado") info.textContent = "N/C";
+      else if (e.clave === "licencia") info.textContent = "Lic.";
+      else if (e.clave === "sin_registro") info.textContent = "?";
+      celda.appendChild(info);
+      if (e.conflicto) {
+        var alerta = document.createElement("span");
+        alerta.className = "cal-alerta";
+        alerta.textContent = "!";
+        celda.appendChild(alerta);
+      }
+
+      celda.addEventListener("click", function () {
+        rhStatsDiaElegido = iso;
+        body.querySelectorAll(".cal-dia.elegido").forEach(function (c) { c.classList.remove("elegido"); });
+        celda.classList.add("elegido");
+        rhStatsRenderDetalleDia(detalle, iso);
+        detalle.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+      cal.appendChild(celda);
+    });
+    body.appendChild(cal);
+  });
+
   body.appendChild(detalle);
-  if (rhStatsDiaElegido && rhIsDateInRange(rhStatsDiaElegido, range.start, range.end)) {
+  if (rhStatsDiaElegido && rhIsDateInRange(rhStatsDiaElegido, p.start, p.end)) {
     rhStatsRenderDetalleDia(detalle, rhStatsDiaElegido);
   } else {
     detalle.innerHTML = '<span class="label-hint">Toca un día para ver su detalle.</span>';
@@ -781,9 +788,9 @@ function rhStatsRenderDetalleDia(cont, iso) {
   }
   if (!e.licencia && RH_FERIADOS_CHILE[iso]) lineas.push("Feriado nacional: " + RH_FERIADOS_CHILE[iso] + " (sin marcar)");
   lineas.forEach(function (t) {
-    var p = document.createElement("p");
-    p.textContent = t;
-    cont.appendChild(p);
+    var pEl = document.createElement("p");
+    pEl.textContent = t;
+    cont.appendChild(pEl);
   });
 
   var acts = rhRegistroActividades(e.registro);
@@ -801,15 +808,14 @@ function rhStatsRenderDetalleDia(cont, iso) {
     cont.appendChild(aviso);
   }
 
-  var abrir = rhStatsBoton(e.registro ? "Abrir en Marcaje" : "Registrar este día", "btn-secondary", function () { rhMarcajeAbrirFecha(iso); });
-  cont.appendChild(abrir);
+  cont.appendChild(rhStatsBoton(e.registro ? "Abrir en Marcaje" : "Registrar este día", "btn-secondary", function () { rhMarcajeAbrirFecha(iso); }));
 }
 
-// Semanas (lunes a domingo) del mes, recortadas a los días del mes.
-function rhGroupMonthByWeek(monthRange) {
+// Semanas (lunes a domingo) de un rango, recortadas a los días del rango.
+function rhGroupRangeByWeek(start, end) {
   var groups = [];
   var porInicio = {};
-  rhDaysBetweenInclusive(monthRange.start, monthRange.end).forEach(function (iso) {
+  rhDaysBetweenInclusive(start, end).forEach(function (iso) {
     var wr = rhWeekRange(iso);
     if (!porInicio[wr.start]) {
       porInicio[wr.start] = { weekStart: wr.start, weekEnd: wr.end, dias: [] };
@@ -820,10 +826,23 @@ function rhGroupMonthByWeek(monthRange) {
   return groups;
 }
 
-function rhStatsVistaSemanas(body, mes) {
+// Compatibilidad: semanas de un mes ({ start, end }).
+function rhGroupMonthByWeek(monthRange) {
+  return rhGroupRangeByWeek(monthRange.start, monthRange.end);
+}
+
+function rhStatsEtiquetaDias(primero, ultimo) {
+  var a = rhParseISO(primero);
+  var b = rhParseISO(ultimo);
+  if (primero === ultimo) return a.getDate() + " " + RH_MESES_ABREV[a.getMonth()];
+  if (a.getMonth() === b.getMonth()) return a.getDate() + "–" + b.getDate() + " " + RH_MESES_ABREV[a.getMonth()];
+  return a.getDate() + " " + RH_MESES_ABREV[a.getMonth()] + " – " + b.getDate() + " " + RH_MESES_ABREV[b.getMonth()];
+}
+
+function rhStatsVistaSemanas(body, p) {
   var config = rhLoadConfig();
   var today = rhTodayISO();
-  var groups = rhGroupMonthByWeek(rhMonthRange(mes));
+  var groups = rhGroupRangeByWeek(p.start, p.end);
   var lista = document.createElement("div");
   lista.className = "semanas";
 
@@ -841,16 +860,14 @@ function rhStatsVistaSemanas(body, mes) {
 
     var fila = document.createElement("div");
     fila.className = "semana-fila" + (estado === "actual" ? " actual" : "");
-
     var top = document.createElement("div");
     top.className = "semana-top";
     var titulo = document.createElement("strong");
-    titulo.textContent = "Semana " + (idx + 1);
+    titulo.textContent = p.modo === "mes" ? "Semana " + (idx + 1) : rhStatsEtiquetaDias(primero, ultimo);
     top.appendChild(titulo);
     var rango = document.createElement("span");
     rango.className = "semana-rango";
-    rango.textContent = rhParseISO(primero).getDate() + (primero !== ultimo ? "–" + rhParseISO(ultimo).getDate() : "") +
-      " " + RH_MESES_ABREV[rhParseISO(primero).getMonth()];
+    rango.textContent = p.modo === "mes" ? rhStatsEtiquetaDias(primero, ultimo) : "";
     top.appendChild(rango);
     var tag = document.createElement("span");
     if (estado === "actual") {
@@ -886,16 +903,14 @@ function rhStatsVistaSemanas(body, mes) {
     pctEl.textContent = pct === null ? "—" : pct + "%";
     pie.appendChild(pctEl);
     fila.appendChild(pie);
-
     lista.appendChild(fila);
   });
   body.appendChild(lista);
 }
 
-function rhStatsVistaDias(body, mes) {
+function rhStatsVistaDias(body, p) {
   var config = rhLoadConfig();
   var today = rhTodayISO();
-  var range = rhMonthRange(mes);
   var wrap = document.createElement("div");
   wrap.className = "table-wrap";
   var table = document.createElement("table");
@@ -911,7 +926,7 @@ function rhStatsVistaDias(body, mes) {
   table.appendChild(thead);
 
   var tbody = document.createElement("tbody");
-  rhDaysBetweenInclusive(range.start, range.end).forEach(function (iso) {
+  rhDaysBetweenInclusive(p.start, p.end).forEach(function (iso) {
     var e = rhEstadoDia(iso, config, today);
     var tr = document.createElement("tr");
     tr.className = rhClaseFilaDia(e);
@@ -969,14 +984,13 @@ function rhStatsMiniCard(etiqueta, valor, sub, clase) {
   return card;
 }
 
-function rhStatsRenderMasEstadisticas(mes) {
+function rhStatsRenderMasEstadisticas(p) {
   var config = rhLoadConfig();
-  var range = rhMonthRange(mes);
   var registros = rhLoadRegistros().filter(function (r) {
-    return rhIsDateInRange(r.fecha, range.start, range.end) && rhRegistroMinutes(r) > 0;
+    return rhIsDateInRange(r.fecha, p.start, p.end) && rhRegistroMinutes(r) > 0;
   });
   var totalMin = registros.reduce(function (s, r) { return s + rhRegistroMinutes(r); }, 0);
-  var diasConMeta = rhDaysBetweenInclusive(range.start, range.end).filter(function (iso) {
+  var diasConMeta = rhDaysBetweenInclusive(p.start, p.end).filter(function (iso) {
     return rhMinutosEsperadosDia(iso, config) > 0;
   }).length;
 
@@ -986,6 +1000,9 @@ function rhStatsRenderMasEstadisticas(mes) {
   var masCorta = null;
   var masDeUna = 0;
   var masDeDos = 0;
+  var tardeMin = 0;
+  var diasTarde = 0;
+  var ventanaTarde = config.horarioBase.bloque2;
   registros.forEach(function (r) {
     var min = rhRegistroMinutes(r);
     if (!masLarga || min > masLarga.min) masLarga = { fecha: r.fecha, min: min };
@@ -993,27 +1010,28 @@ function rhStatsRenderMasEstadisticas(mes) {
     var bloques = rhRegistroBloques(r).filter(function (b) { return b.entrada && b.salida; });
     if (bloques.length >= 2) masDeUna++;
     if (bloques.length >= 3) masDeDos++;
+    var enTarde = rhMinutosEnVentana(bloques, ventanaTarde);
+    tardeMin += enTarde;
+    if (enTarde > 0) diasTarde++;
   });
   function fechaCorta(iso) { return rhDayOfWeekLabel(iso, true) + " " + rhFormatDateDisplay(iso).slice(0, 5); }
   function pctDias(n) { return registros.length ? Math.round((n / registros.length) * 100) + "% de los días trabajados" : ""; }
 
-  // Semana (lunes a domingo, dentro del mes) con más horas trabajadas.
   var mejorSemana = null;
-  rhGroupMonthByWeek(range).forEach(function (g, idx) {
+  rhGroupRangeByWeek(p.start, p.end).forEach(function (g) {
     var min = g.dias.reduce(function (sum, iso) { return sum + rhRegistroMinutes(rhGetRegistroByFecha(iso)); }, 0);
     if (min > 0 && (!mejorSemana || min > mejorSemana.min)) {
-      mejorSemana = { n: idx + 1, min: min, desde: g.dias[0], hasta: g.dias[g.dias.length - 1] };
+      mejorSemana = { min: min, desde: g.dias[0], hasta: g.dias[g.dias.length - 1] };
     }
   });
 
-  var actividades = rhContarActividades(range.start, range.end).lista;
-  var topActividad = actividades[0];
+  // Promedio semanal sobre los días del período que ya pasaron.
+  var hasta = rhCompareISO(p.end, rhTodayISO()) < 0 ? p.end : rhTodayISO();
+  var diasTranscurridos = rhCompareISO(p.start, hasta) <= 0 ? rhDaysBetweenInclusive(p.start, hasta).length : 0;
+  var semanas = diasTranscurridos / 7;
 
-  var mesAnterior = rhParseISO(range.start);
-  mesAnterior.setMonth(mesAnterior.getMonth() - 1);
-  var rangoAnt = rhMonthRange(rhDateToISO(mesAnterior));
-  var trabajadoAnt = rhWorkedMinutesInRange(rangoAnt.start, rangoAnt.end);
-  var especiales = rhContarDiasEspeciales(range.start, range.end);
+  var topActividad = rhContarActividades(p.start, p.end).lista[0];
+  var especiales = rhContarDiasEspeciales(p.start, p.end);
 
   var cont = rhEl("stats-mini");
   rhClear(cont);
@@ -1021,27 +1039,40 @@ function rhStatsRenderMasEstadisticas(mes) {
     "de " + rhPlural(diasConMeta, "día hábil con meta", "días hábiles con meta")));
   cont.appendChild(rhStatsMiniCard("Promedio por día trabajado",
     registros.length ? rhMinutesToHM(totalMin / registros.length) : "—"));
+  cont.appendChild(rhStatsMiniCard("Promedio por semana",
+    semanas >= 1 ? rhMinutesToHM(totalMin / semanas) : "—",
+    "Contrato: " + rhHorasSemanalesEn(hasta, config) + " h por semana"));
   cont.appendChild(rhStatsMiniCard("Jornada más larga",
     masLarga ? rhMinutesToHM(masLarga.min) : "—", masLarga ? fechaCorta(masLarga.fecha) + " (total del día)" : ""));
   cont.appendChild(rhStatsMiniCard("Jornada más corta",
     masCorta ? rhMinutesToHM(masCorta.min) : "—", masCorta ? fechaCorta(masCorta.fecha) + " (total del día)" : ""));
   cont.appendChild(rhStatsMiniCard("Días con más de una jornada", String(masDeUna), pctDias(masDeUna)));
   cont.appendChild(rhStatsMiniCard("Días con más de dos jornadas", String(masDeDos), pctDias(masDeDos)));
+  cont.appendChild(rhStatsMiniCard("Horas en jornada de tarde",
+    rhMinutesToHM(tardeMin),
+    rhPlural(diasTarde, "día", "días") + " (" + rhFormatHora12(ventanaTarde.entrada) + " – " + rhFormatHora12(ventanaTarde.salida) + ")"));
   cont.appendChild(rhStatsMiniCard("Actividad más realizada",
     topActividad ? topActividad.nombre : "—",
-    topActividad ? rhPlural(topActividad.dias, "día", "días") + " este mes" : "Aún sin actividades marcadas",
+    topActividad ? rhPlural(topActividad.dias, "día", "días") : "Aún sin actividades marcadas",
     "mini-texto"));
   cont.appendChild(rhStatsMiniCard("Semana con más horas",
     mejorSemana ? rhMinutesToHM(mejorSemana.min) : "—",
-    mejorSemana ? "Semana " + mejorSemana.n + " (" + rhParseISO(mejorSemana.desde).getDate() + "–" +
-      rhParseISO(mejorSemana.hasta).getDate() + " " + RH_MESES_ABREV[rhParseISO(mejorSemana.desde).getMonth()] + ")" : ""));
+    mejorSemana ? rhStatsEtiquetaDias(mejorSemana.desde, mejorSemana.hasta) : ""));
   cont.appendChild(rhStatsMiniCard("Feriados, no convocados y licencias", String(especiales.total),
     especiales.feriados + " fer. · " + especiales.noConvocados + " no conv. · " + especiales.licencias + " lic."));
-  var dif = rhWorkedMinutesInRange(range.start, range.end) - trabajadoAnt;
-  cont.appendChild(rhStatsMiniCard("Comparado con " + RH_MESES[mesAnterior.getMonth()].toLowerCase(),
-    trabajadoAnt > 0 || totalMin > 0 ? rhConSigno(dif) : "—",
-    rhMinutesToHM(trabajadoAnt) + " en " + RH_MESES[mesAnterior.getMonth()].toLowerCase(),
-    dif > 0 ? "mini-favor" : dif < 0 ? "mini-contra" : ""));
+
+  if (p.modo === "mes") {
+    var mesAnterior = rhParseISO(p.start);
+    mesAnterior.setMonth(mesAnterior.getMonth() - 1);
+    var rangoAnt = rhMonthRange(rhDateToISO(mesAnterior));
+    var trabajadoAnt = rhWorkedMinutesInRange(rangoAnt.start, rangoAnt.end);
+    var dif = totalMin - trabajadoAnt;
+    var nombreAnt = RH_MESES[mesAnterior.getMonth()].toLowerCase();
+    cont.appendChild(rhStatsMiniCard("Comparado con " + nombreAnt,
+      trabajadoAnt > 0 || totalMin > 0 ? rhConSigno(dif) : "—",
+      rhMinutesToHM(trabajadoAnt) + " en " + nombreAnt,
+      dif > 0 ? "mini-favor" : dif < 0 ? "mini-contra" : ""));
+  }
 
   // Horas por día de la semana (lunes a domingo; fin de semana solo si hubo).
   var porDia = {};
@@ -1062,7 +1093,7 @@ function rhStatsRenderMasEstadisticas(mes) {
       rojo: dow === 0 || dow === 6
     };
   });
-  rhStatsRenderBarras(rhEl("stats-dias-semana"), filas, "No hay horas registradas este mes.");
+  rhStatsRenderBarras(rhEl("stats-dias-semana"), filas, "No hay horas registradas en este período.");
 }
 
 // Barras horizontales simples: [{ etiqueta, valor, texto, rojo }].
@@ -1097,34 +1128,17 @@ function rhStatsRenderBarras(cont, filas, textoVacio) {
   });
 }
 
-// ---------- Actividades más frecuentes ----------
+// ---------- Actividades frecuentes ----------
 
-rhEl("stats-actividades-alcance").addEventListener("click", function (e) {
-  var b = e.target.closest(".segmented-btn");
-  if (!b) return;
-  rhStatsAlcanceActividades = b.getAttribute("data-alcance");
-  rhPrefSet("rh_pref_actividades_alcance", rhStatsAlcanceActividades);
-  rhStatsRenderActividades(rhStatsMeses.actividades);
-});
-
-function rhStatsRenderActividades(mes) {
-  rhEl("stats-actividades-alcance").querySelectorAll(".segmented-btn").forEach(function (b) {
-    b.classList.toggle("activo", b.getAttribute("data-alcance") === rhStatsAlcanceActividades);
-  });
-  var todo = rhStatsAlcanceActividades === "todo";
-  // Con "Todo el historial" el mes elegido no aplica: se atenúa su selector.
-  rhEl("nav-mes-actividades").classList.toggle("nav-mes-inactivo", todo);
-  var range = rhMonthRange(mes);
-  var res = todo ? rhContarActividades() : rhContarActividades(range.start, range.end);
+function rhStatsRenderActividades(p) {
+  var res = rhContarActividades(p.start, p.end);
   var cont = rhEl("stats-actividades");
   var filas = res.lista.map(function (a) {
     var pct = res.diasTrabajados ? Math.round((a.dias / res.diasTrabajados) * 100) : 0;
     return { etiqueta: a.nombre, valor: a.dias, texto: rhPlural(a.dias, "día", "días") + (pct ? " · " + pct + "%" : "") };
   });
   rhStatsRenderBarras(cont, filas,
-    "Aún no hay actividades marcadas " + (rhStatsAlcanceActividades === "todo" ? "" : "en " + rhNombreMes(mes).toLowerCase() + " ") +
-    "— elígelas al registrar tu jornada en Marcaje.");
-  cont.classList.add("barras-actividades");
+    "Aún no hay actividades marcadas en " + p.corta + " — elígelas al registrar tu jornada en Marcaje.");
   if (res.sinActividad > 0 && filas.length) {
     var nota = document.createElement("p");
     nota.className = "label-hint";

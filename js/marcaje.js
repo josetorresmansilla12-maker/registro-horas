@@ -34,8 +34,18 @@ var rhMarcajeJornadas = [];
 // Selector de actividades del formulario (se rearma al cambiar de fecha).
 var rhMarcajeActividadesPicker = null;
 
+// Estado del formulario: `fechaOriginal` es el día que se abrió para editar
+// (null si es una jornada nueva) y `sucio` indica que tocaste algo (horas,
+// nota o actividades) que aún no guardas. Con esto, cambiar la fecha nunca
+// borra lo escrito: si estabas editando, la jornada se mueve al guardar.
+var rhMarcajeForm = { fechaOriginal: null, sucio: false };
+
+function rhMarcajeMarcarSucio() {
+  rhMarcajeForm.sucio = true;
+}
+
 function rhMarcajeSetActividades(lista) {
-  rhMarcajeActividadesPicker = rhCrearSelectorActividades(marcajeActividadesWrap, lista, null);
+  rhMarcajeActividadesPicker = rhCrearSelectorActividades(marcajeActividadesWrap, lista, rhMarcajeMarcarSucio);
 }
 
 // Copia de un registro con algunos campos cambiados, conservando el resto
@@ -79,6 +89,7 @@ function rhMarcajeBuildTimeField(labelText, bloque, key) {
   input.type = "time";
   input.value = bloque[key] || "";
   function sync() {
+    if (bloque[key] !== input.value) rhMarcajeMarcarSucio();
     bloque[key] = input.value;
     rhMarcajeUpdateTotalPreview();
   }
@@ -108,6 +119,7 @@ function rhMarcajeBuildJornadaRow(bloque, idx) {
     removeBtn.textContent = "Quitar";
     removeBtn.addEventListener("click", function () {
       rhMarcajeJornadas.splice(idx, 1);
+      rhMarcajeMarcarSucio();
       rhMarcajeRenderJornadas();
     });
     head.appendChild(removeBtn);
@@ -156,6 +168,8 @@ function rhMarcajeShowLicenciaBanner(fecha) {
 // guardar (para no dejar "pegados" los datos del día recién guardado) y
 // cuando la fecha elegida todavía no tiene registro.
 function rhMarcajeBlankSetup(fecha) {
+  rhMarcajeForm.fechaOriginal = null;
+  rhMarcajeForm.sucio = false;
   marcajeIdInput.value = "";
   marcajeNota.value = "";
   rhMarcajeSetActividades([]);
@@ -191,6 +205,8 @@ function rhMarcajeLoadFecha(fecha) {
   var existente = rhGetRegistroByFecha(fecha);
 
   if (existente) {
+    rhMarcajeForm.fechaOriginal = fecha;
+    rhMarcajeForm.sucio = false;
     marcajeIdInput.value = existente.id;
     marcajeNota.value = existente.nota || "";
     rhMarcajeSetActividades(rhRegistroActividades(existente));
@@ -218,9 +234,48 @@ function rhMarcajeLoadFecha(fecha) {
   }
 }
 
+// Cambiar la fecha NO borra lo que ya está en el formulario:
+//  - si estabas editando un día, la jornada (horas, nota y actividades) se
+//    mueve a la nueva fecha al guardar;
+//  - si estabas registrando uno nuevo y ya escribiste algo, se conserva;
+//  - solo si el formulario está sin tocar se cargan los datos de esa fecha.
+function rhMarcajeCambiarFecha(nueva) {
+  marcajeErrorBloques.textContent = "";
+  if (!rhMarcajeForm.fechaOriginal && !rhMarcajeForm.sucio) {
+    rhMarcajeLoadFecha(nueva);
+    return;
+  }
+  rhMarcajeShowLicenciaBanner(nueva);
+  var original = rhMarcajeForm.fechaOriginal;
+  var destino = nueva !== original ? rhGetRegistroByFecha(nueva) : null;
+
+  if (original && nueva !== original) {
+    marcajeFormTitle.textContent = "Mover jornada — del " + rhFormatDateDisplay(original) + " al " + rhFormatDateDisplay(nueva);
+  } else if (original) {
+    marcajeFormTitle.textContent = "Editar jornada — " + rhFormatDateDisplay(nueva);
+  } else {
+    marcajeFormTitle.textContent = "Registrar jornada — " + rhFormatDateDisplay(nueva);
+  }
+
+  var avisos = [];
+  if (original && nueva !== original) {
+    avisos.push("Al guardar, esta jornada (horas, nota y actividades) pasará del " + rhFormatDateDisplay(original) +
+      " al " + rhFormatDateDisplay(nueva) + ".");
+  }
+  if (destino) {
+    var previos = rhRegistroBloques(destino);
+    avisos.push("El " + rhFormatDateDisplay(nueva) + " ya tiene " +
+      (previos.length ? "registro: " + rhMarcajeResumenBloques(previos) : "un registro") + "; se sumará a eso.");
+  }
+  marcajeExistenteBannerText.textContent = avisos.join(" ");
+  marcajeExistenteBanner.classList.toggle("hidden", avisos.length === 0);
+}
+
 marcajeFechaInput.addEventListener("change", function () {
-  rhMarcajeLoadFecha(marcajeFechaInput.value || rhTodayISO());
+  rhMarcajeCambiarFecha(marcajeFechaInput.value || rhTodayISO());
 });
+
+marcajeNota.addEventListener("input", rhMarcajeMarcarSucio);
 
 rhEl("marcaje-add-jornada-btn").addEventListener("click", function () {
   rhMarcajeJornadas.push(rhMarcajeBloqueVacio());
@@ -321,9 +376,17 @@ marcajeForm.addEventListener("submit", function (e) {
     return;
   }
 
+  // Si abriste un día para editarlo y le cambiaste la fecha, la jornada se
+  // mueve: se guarda en la fecha nueva (sumándose si ya había algo ahí) y el
+  // registro del día original pasa a la Papelera.
+  var fechaOriginal = rhMarcajeForm.fechaOriginal;
+  var moviendo = !!(fechaOriginal && fechaOriginal !== fecha);
+  var original = moviendo ? rhGetRegistroByFecha(fechaOriginal) : null;
   var existente = rhGetRegistroByFecha(fecha);
-  var esEdicion = !!marcajeIdInput.value;
-  var mensajeOk = "Jornada del " + rhFormatDateDisplay(fecha) + " guardada.";
+  var esEdicion = !!marcajeIdInput.value && !moviendo;
+  var mensajeOk = moviendo
+    ? "Jornada movida del " + rhFormatDateDisplay(fechaOriginal) + " al " + rhFormatDateDisplay(fecha) + "."
+    : "Jornada del " + rhFormatDateDisplay(fecha) + " guardada.";
 
   if (existente && !esEdicion) {
     // La fecha ya tenía registro y el formulario no se abrió para editarlo
@@ -342,7 +405,8 @@ marcajeForm.addEventListener("submit", function (e) {
       });
     });
 
-    var aviso = "El " + rhFormatDateDisplay(fecha) + " ya tiene un registro" +
+    var aviso = (moviendo ? "Se moverá la jornada del " + rhFormatDateDisplay(fechaOriginal) + " al " + rhFormatDateDisplay(fecha) + ".\n\n" : "") +
+      "El " + rhFormatDateDisplay(fecha) + " ya tiene un registro" +
       (previos.length ? ": " + rhMarcajeResumenBloques(previos) : "") + ".\n\n";
     if (nuevos.length) aviso += "Se sumará: " + rhMarcajeResumenBloques(nuevos) + ".\n";
     if (solapados.length) aviso += "\nOJO: " + rhMarcajeResumenBloques(solapados) + " se cruza con un horario ya guardado y esas horas se contarían dos veces.\n";
@@ -358,20 +422,24 @@ marcajeForm.addEventListener("submit", function (e) {
       actividades: rhUnirActividades(rhRegistroActividades(existente), actividades),
       estado: previos.length || nuevos.length ? null : existente.estado
     }));
-    mensajeOk = "Se sumó a la jornada del " + rhFormatDateDisplay(fecha) + ".";
+    if (!moviendo) mensajeOk = "Se sumó a la jornada del " + rhFormatDateDisplay(fecha) + ".";
   } else {
-    var registro = {
-      id: marcajeIdInput.value || null,
+    // Se parte del registro que se está editando (o moviendo) para conservar
+    // cualquier otro dato que tenga; solo cambia lo que está en el formulario.
+    var base = moviendo ? original : existente;
+    var registro = rhRegistroActualizado(base, {
+      id: esEdicion ? marcajeIdInput.value : null,
       fecha: fecha,
       bloques: bloques,
       nota: nota,
       actividades: actividades
-    };
+    });
     // Editar la nota de un día "Aún no contratado" no debe convertirlo en un
     // día hábil sin horas: se conserva el estado mientras no se agreguen horas.
-    if (bloques.length === 0 && existente && existente.estado) registro.estado = existente.estado;
+    if (bloques.length > 0 || !base || !base.estado) delete registro.estado;
     rhUpsertRegistro(registro);
   }
+  if (moviendo && original) rhDeleteRegistro(original.id);
   rhShowAlert(mensajeOk, "success");
   rhMarcajeMesActual = rhMonthRange(fecha).start;
   rhMarcajeResetForm();
@@ -499,7 +567,8 @@ function rhMarcajeMarcarHoraAhora(tipo) {
   rhShowAlert((tipo === "entrada" ? "Entrada marcada a las " : "Salida marcada a las ") + rhFormatHora12(hora) + ".", "success");
 
   rhMarcajeMesActual = rhMonthRange(fecha).start;
-  if (marcajeFechaInput.value === fecha) rhMarcajeLoadFecha(fecha);
+  // Se refresca el formulario si muestra hoy, salvo que tenga cambios sin guardar.
+  if (marcajeFechaInput.value === fecha && !rhMarcajeForm.sucio) rhMarcajeLoadFecha(fecha);
   renderMarcajeTable();
 }
 
@@ -537,7 +606,8 @@ function rhMarcajeDeshacerUltimaMarca() {
   }
 
   rhShowAlert(mensaje, "success");
-  if (marcajeFechaInput.value === fecha) rhMarcajeLoadFecha(fecha);
+  // Se refresca el formulario si muestra hoy, salvo que tenga cambios sin guardar.
+  if (marcajeFechaInput.value === fecha && !rhMarcajeForm.sucio) rhMarcajeLoadFecha(fecha);
   renderMarcajeTable();
 }
 
