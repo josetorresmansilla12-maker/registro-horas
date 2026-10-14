@@ -25,6 +25,10 @@ var marcajeDeshacerBtn = rhEl("marcaje-deshacer-btn");
 var marcajeActividadesWrap = rhEl("marcaje-actividades");
 var marcajeRapidoActividadesWrap = rhEl("marcaje-rapido-actividades-wrap");
 var marcajeRapidoActividades = rhEl("marcaje-rapido-actividades");
+var marcajeNotaInforme = rhEl("marcaje-nota-informe");
+var marcajeNotaInformeTexto = rhEl("marcaje-nota-informe-texto");
+var marcajeNotaInformeCampo = rhEl("marcaje-nota-informe-campo");
+var marcajeNotaInformeInput = rhEl("marcaje-nota-informe-input");
 
 // La jornada del día es una lista de bloques entrada/salida (puede haber más
 // de dos: reunión en la mañana, al mediodía y en la tarde, por ejemplo).
@@ -44,6 +48,36 @@ function rhMarcajeMarcarSucio() {
   rhMarcajeForm.sucio = true;
 }
 
+// Vista previa de cómo se verá la nota en el informe (resumida y corregida),
+// o el texto que escribiste a mano solo para el informe.
+function rhMarcajeActualizarPreviaInforme() {
+  var nota = marcajeNota.value.trim();
+  marcajeNotaInforme.classList.toggle("hidden", !nota);
+  if (!nota) return;
+  marcajeNotaInformeTexto.textContent = marcajeNotaInformeInput.value.trim() || rhResumirDescripcion(nota);
+}
+
+function rhMarcajeSetNotaInforme(texto) {
+  marcajeNotaInformeInput.value = texto || "";
+  marcajeNotaInformeCampo.classList.toggle("hidden", !texto);
+  rhMarcajeActualizarPreviaInforme();
+}
+
+// Texto manual para el informe, guardado junto a la nota a la que corresponde
+// (si después cambias la nota, vuelve a usarse el resumen automático).
+function rhMarcajeAplicarNotaInforme(registro) {
+  var manual = marcajeNotaInformeInput.value.trim();
+  // Si quedó igual al resumen automático no se guarda como texto manual.
+  if (manual && registro.nota && manual !== rhResumirDescripcion(registro.nota)) {
+    registro.notaInforme = manual;
+    registro.notaInformeDe = registro.nota;
+  } else {
+    delete registro.notaInforme;
+    delete registro.notaInformeDe;
+  }
+  return registro;
+}
+
 function rhMarcajeSetActividades(lista) {
   rhMarcajeActividadesPicker = rhCrearSelectorActividades(marcajeActividadesWrap, lista, rhMarcajeMarcarSucio);
 }
@@ -60,8 +94,8 @@ function rhRegistroActualizado(base, cambios) {
 
 function rhMarcajeResumenBloques(bloques) {
   return bloques.map(function (b) {
-    if (b.entrada && b.salida) return rhFormatBloque12(b);
-    if (b.entrada) return rhFormatHora12(b.entrada) + " – (en curso)";
+    if (b.entrada && b.salida) return rhFormatBloque(b);
+    if (b.entrada) return rhFormatHora(b.entrada) + " – (en curso)";
     return "—";
   }).join(" · ");
 }
@@ -172,6 +206,7 @@ function rhMarcajeBlankSetup(fecha) {
   rhMarcajeForm.sucio = false;
   marcajeIdInput.value = "";
   marcajeNota.value = "";
+  rhMarcajeSetNotaInforme("");
   rhMarcajeSetActividades([]);
   marcajeFormTitle.textContent = "Registrar jornada — " + rhFormatDateDisplay(fecha);
 
@@ -209,6 +244,7 @@ function rhMarcajeLoadFecha(fecha) {
     rhMarcajeForm.sucio = false;
     marcajeIdInput.value = existente.id;
     marcajeNota.value = existente.nota || "";
+    rhMarcajeSetNotaInforme(existente.notaInforme && existente.notaInformeDe === existente.nota ? existente.notaInforme : "");
     rhMarcajeSetActividades(rhRegistroActividades(existente));
     var estadoLabel = rhRegistroEstadoLabel(existente);
     if (estadoLabel) {
@@ -275,7 +311,24 @@ marcajeFechaInput.addEventListener("change", function () {
   rhMarcajeCambiarFecha(marcajeFechaInput.value || rhTodayISO());
 });
 
-marcajeNota.addEventListener("input", rhMarcajeMarcarSucio);
+marcajeNota.addEventListener("input", function () {
+  rhMarcajeMarcarSucio();
+  rhMarcajeActualizarPreviaInforme();
+});
+
+marcajeNotaInformeInput.addEventListener("input", function () {
+  rhMarcajeMarcarSucio();
+  rhMarcajeActualizarPreviaInforme();
+});
+
+rhEl("marcaje-nota-informe-editar").addEventListener("click", function () {
+  var abrir = marcajeNotaInformeCampo.classList.contains("hidden");
+  marcajeNotaInformeCampo.classList.toggle("hidden", !abrir);
+  if (abrir) {
+    if (!marcajeNotaInformeInput.value.trim()) marcajeNotaInformeInput.value = rhResumirDescripcion(marcajeNota.value);
+    marcajeNotaInformeInput.focus();
+  }
+});
 
 rhEl("marcaje-add-jornada-btn").addEventListener("click", function () {
   rhMarcajeJornadas.push(rhMarcajeBloqueVacio());
@@ -437,7 +490,7 @@ marcajeForm.addEventListener("submit", function (e) {
     // Editar la nota de un día "Aún no contratado" no debe convertirlo en un
     // día hábil sin horas: se conserva el estado mientras no se agreguen horas.
     if (bloques.length > 0 || !base || !base.estado) delete registro.estado;
-    rhUpsertRegistro(registro);
+    rhUpsertRegistro(rhMarcajeAplicarNotaInforme(registro));
   }
   if (moviendo && original) rhDeleteRegistro(original.id);
   rhShowAlert(mensajeOk, "success");
@@ -480,7 +533,7 @@ function rhMarcajeRenderRapidoStatus() {
   var abierto = rhMarcajeBloqueAbiertoHoy(bloquesHoy);
 
   if (abierto) {
-    marcajeRapidoStatus.textContent = "🟢 Entrada marcada hoy a las " + rhFormatHora12(abierto.entrada) + " — falta marcar la salida.";
+    marcajeRapidoStatus.textContent = "🟢 Entrada marcada hoy a las " + rhFormatHora(abierto.entrada) + " — falta marcar la salida.";
     marcajeMarcarEntradaBtn.disabled = true;
     marcajeMarcarSalidaBtn.disabled = false;
   } else if (bloquesHoy.length > 0) {
@@ -499,9 +552,9 @@ function rhMarcajeRenderRapidoStatus() {
   if (bloquesHoy.length > 0) {
     var ultimo = bloquesHoy[bloquesHoy.length - 1];
     if (ultimo.salida) {
-      marcajeDeshacerBtn.textContent = "↩️ Deshacer salida (" + rhFormatHora12(ultimo.salida) + ")";
+      marcajeDeshacerBtn.textContent = "↩️ Deshacer salida (" + rhFormatHora(ultimo.salida) + ")";
     } else {
-      marcajeDeshacerBtn.textContent = "↩️ Deshacer entrada (" + rhFormatHora12(ultimo.entrada) + ")";
+      marcajeDeshacerBtn.textContent = "↩️ Deshacer entrada (" + rhFormatHora(ultimo.entrada) + ")";
     }
     marcajeDeshacerBtn.classList.remove("hidden");
   } else {
@@ -550,8 +603,8 @@ function rhMarcajeMarcarHoraAhora(tipo) {
       return;
     }
     if (rhBlockIsInvalid({ entrada: abierto.entrada, salida: hora })) {
-      rhShowAlert("La hora actual (" + rhFormatHora12(hora) + ") no puede ser la salida: es igual o anterior a la entrada (" +
-        rhFormatHora12(abierto.entrada) + "). Ajusta la hora manualmente si hace falta.", "error");
+      rhShowAlert("La hora actual (" + rhFormatHora(hora) + ") no puede ser la salida: es igual o anterior a la entrada (" +
+        rhFormatHora(abierto.entrada) + "). Ajusta la hora manualmente si hace falta.", "error");
       return;
     }
     abierto.salida = hora;
@@ -564,7 +617,7 @@ function rhMarcajeMarcarHoraAhora(tipo) {
     estado: null
   }));
 
-  rhShowAlert((tipo === "entrada" ? "Entrada marcada a las " : "Salida marcada a las ") + rhFormatHora12(hora) + ".", "success");
+  rhShowAlert((tipo === "entrada" ? "Entrada marcada a las " : "Salida marcada a las ") + rhFormatHora(hora) + ".", "success");
 
   rhMarcajeMesActual = rhMonthRange(fecha).start;
   // Se refresca el formulario si muestra hoy, salvo que tenga cambios sin guardar.
@@ -589,12 +642,12 @@ function rhMarcajeDeshacerUltimaMarca() {
   var ultimo = bloques[bloques.length - 1];
   var mensaje;
   if (ultimo.salida) {
-    if (!confirm("¿Deshacer la salida marcada a las " + rhFormatHora12(ultimo.salida) +
-      "? La entrada de las " + rhFormatHora12(ultimo.entrada) + " se mantiene.")) return;
+    if (!confirm("¿Deshacer la salida marcada a las " + rhFormatHora(ultimo.salida) +
+      "? La entrada de las " + rhFormatHora(ultimo.entrada) + " se mantiene.")) return;
     ultimo.salida = "";
     mensaje = "Se deshizo la salida marcada.";
   } else {
-    if (!confirm("¿Deshacer la entrada marcada a las " + rhFormatHora12(ultimo.entrada) + "?")) return;
+    if (!confirm("¿Deshacer la entrada marcada a las " + rhFormatHora(ultimo.entrada) + "?")) return;
     bloques.pop();
     mensaje = "Se deshizo la entrada marcada.";
   }

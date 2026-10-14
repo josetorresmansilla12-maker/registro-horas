@@ -95,6 +95,15 @@
           <div class="field">
             <label for="marcaje-nota">Notas / bitácora del día <span class="label-hint">(opcional)</span></label>
             <textarea id="marcaje-nota" rows="2" placeholder="Ej: Asistencia a colegio X, elaboración de taller..."></textarea>
+            <div class="nota-informe hidden" id="marcaje-nota-informe">
+              <span class="nota-informe-titulo">En el informe se verá:</span>
+              <p class="nota-informe-texto" id="marcaje-nota-informe-texto"></p>
+              <button type="button" class="btn-link" id="marcaje-nota-informe-editar">✏️ Escribir otro texto para el informe</button>
+              <div class="hidden" id="marcaje-nota-informe-campo">
+                <textarea id="marcaje-nota-informe-input" rows="2" placeholder="Texto para el informe"></textarea>
+                <span class="label-hint">Solo cambia lo que aparece en el informe; tu nota queda igual. Déjalo vacío para usar el resumen automático.</span>
+              </div>
+            </div>
           </div>
 
           <div class="total-preview" id="marcaje-total-preview">Total del día: 0h 00m</div>
@@ -484,12 +493,24 @@
         </div>
       </section>
 
+      <section class="form-section" id="informe-opciones-section">
+        <h2>Qué incluir</h2>
+        <label class="switch-option">
+          <input type="checkbox" id="informe-incluir-descripciones" checked />
+          Descripción de cada día (resumida y con la ortografía corregida)
+        </label>
+        <label class="switch-option">
+          <input type="checkbox" id="informe-incluir-arreglo" />
+          Arreglo de horas (lo que se me debe o debo en el período)
+        </label>
+      </section>
+
       <section class="form-section">
-        <h2>Resumen del mes actual</h2>
-        <p class="label-hint">Meta ajustada por licencias/feriados y horas trabajadas del mes en curso — sin balance, solo para reportar.</p>
+        <h2>Resumen del período</h2>
+        <p class="label-hint" id="informe-resumen-hint">Horas que pedía el contrato y horas trabajadas en el período elegido.</p>
         <div class="stats-cards">
           <div class="stat-card">
-            <span class="stat-label">Meta del mes</span>
+            <span class="stat-label">Horas según contrato</span>
             <span class="stat-value" id="informe-meta-mes-value">0h 00m</span>
             <span class="stat-sub" id="informe-meta-mes-sub"></span>
           </div>
@@ -526,6 +547,19 @@
             </tfoot>
           </table>
         </div>
+      </section>
+
+      <section class="form-section hidden" id="informe-arreglo-section">
+        <h2>Arreglo de horas del período</h2>
+        <p class="label-hint" id="informe-arreglo-contrato"></p>
+        <div class="informe-arreglo-cifras" id="informe-arreglo-cifras"></div>
+        <div class="table-wrap">
+          <table class="data-table" id="informe-arreglo-tabla">
+            <thead><tr><th>Mes</th><th>Trabajadas</th><th>Según contrato</th><th>Saldo</th></tr></thead>
+            <tbody id="informe-arreglo-body"></tbody>
+          </table>
+        </div>
+        <p class="label-hint">No se cuentan como días a trabajar los feriados, los días sin convocatoria ni las licencias.</p>
       </section>
     </section>
 
@@ -657,6 +691,10 @@
         <input type="checkbox" id="export-incluir-proyectos" checked />
         Incluir hoja "Funciones y Proyectos"
       </label>
+      <label class="switch-option">
+        <input type="checkbox" id="export-incluir-arreglo" />
+        Incluir hoja "Arreglo de horas" (lo que se me debe)
+      </label>
       <div class="form-actions">
         <button type="button" class="btn btn-primary" id="export-confirm-btn">Descargar .xlsx</button>
         <button type="button" class="btn btn-secondary" id="export-cancel-btn">Cancelar</button>
@@ -687,14 +725,15 @@
   <script src="js/alerts.js"></script>
   <script src="js/actividades.js"></script>
   <script src="js/periodo.js"></script>
+  <script src="js/resumen.js"></script>
   <script src="js/tabs.js"></script>
   <script src="js/marcaje.js"></script>
   <script src="js/estadisticas.js"></script>
   <script src="js/licencias.js"></script>
   <script src="js/proyectos.js"></script>
   <script src="js/papelera.js"></script>
-  <script src="js/informe.js"></script>
   <script src="js/arreglo.js"></script>
+  <script src="js/informe.js"></script>
   <script src="js/config.js"></script>
   <script src="js/export.js"></script>
   <script src="js/backup.js"></script>

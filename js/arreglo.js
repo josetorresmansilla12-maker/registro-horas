@@ -45,14 +45,14 @@ function rhArregloUnidades(config, iso) {
     },
     {
       id: "manana",
-      label: "Jornada de mañana (" + rhFormatBloque12(b1) + " = " + rhMinutesToHM(m1) + ")",
+      label: "Jornada de mañana (" + rhFormatBloque(b1) + " = " + rhMinutesToHM(m1) + ")",
       corto: "jornada de mañana",
       plural: "jornadas de mañana",
       minutos: m1
     },
     {
       id: "tarde",
-      label: "Jornada de tarde (" + rhFormatBloque12(b2) + " = " + rhMinutesToHM(m2) + ")",
+      label: "Jornada de tarde (" + rhFormatBloque(b2) + " = " + rhMinutesToHM(m2) + ")",
       corto: "jornada de tarde",
       plural: "jornadas de tarde",
       minutos: m2
@@ -184,8 +184,8 @@ function renderArregloCalculo() {
   var b1 = config.horarioBase.bloque1;
   var b2 = config.horarioBase.bloque2;
   rhStatsRenderBarras(rhEl("arreglo-franjas"), [
-    { etiqueta: "Mañana", valor: f.manana, texto: rhMinutesToHM(f.manana) + " · " + rhPlural(f.diasManana, "día", "días") + " (" + rhFormatBloque12(b1) + ")" },
-    { etiqueta: "Tarde", valor: f.tarde, texto: rhMinutesToHM(f.tarde) + " · " + rhPlural(f.diasTarde, "día", "días") + " (" + rhFormatBloque12(b2) + ")" },
+    { etiqueta: "Mañana", valor: f.manana, texto: rhMinutesToHM(f.manana) + " · " + rhPlural(f.diasManana, "día", "días") + " (" + rhFormatBloque(b1) + ")" },
+    { etiqueta: "Tarde", valor: f.tarde, texto: rhMinutesToHM(f.tarde) + " · " + rhPlural(f.diasTarde, "día", "días") + " (" + rhFormatBloque(b2) + ")" },
     { etiqueta: "Otras", valor: f.fuera, texto: rhMinutesToHM(f.fuera) + " fuera de esos horarios" }
   ], "No hay horas registradas en este período.");
   rhEl("arreglo-franjas").classList.add("barras-actividades");
@@ -262,7 +262,7 @@ function renderArregloCalculo() {
     Array.prototype.push.apply(lineas, filasTexto);
   }
   if (f.tarde > 0) {
-    lineas.push("", "Horas en jornada de tarde (" + rhFormatBloque12(b2) + "): " + rhMinutesToHM(f.tarde) + " en " + rhPlural(f.diasTarde, "día", "días") + ".");
+    lineas.push("", "Horas en jornada de tarde (" + rhFormatBloque(b2) + "): " + rhMinutesToHM(f.tarde) + " en " + rhPlural(f.diasTarde, "día", "días") + ".");
   }
   lineas.push("", "No se cuentan como día a trabajar los feriados, días sin convocatoria ni licencias.");
   rhEl("arreglo-resumen").value = lineas.join("\n");

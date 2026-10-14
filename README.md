@@ -41,8 +41,10 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
 - **Informe**: pestaña con identidad visual morada (Universidad de Magallanes) pensada para
   compartir con la jefatura — rango por defecto el mes actual completo, selector de período
   (manual, mes actual, últimos 30/60/90 días o año completo), resumen de meta vs. horas trabajadas
-  del mes (sin balance a favor/en contra) y detalle día por día con horarios AM/PM, actividades y
-  días rojos (fines de semana/feriados); incluye botón Imprimir / PDF.
+  del período y detalle día por día con horarios en formato de 24 horas, actividades y la descripción
+  de cada día resumida y con la ortografía corregida (la nota original no cambia; en Marcaje se ve
+  una vista previa y se puede escribir otro texto solo para el informe). Casillas para incluir o no
+  las descripciones y el **Arreglo de horas** (lo que se debe en el período). Botón Imprimir / PDF.
 - **Funciones y Proyectos**: bitácora aparte de responsabilidades o proyectos asignados.
 - **Configuración**: días laborales, fecha de inicio del seguimiento, sincronización, lista de
   actividades habituales y una Papelera con lo eliminado (recuperable por 30 días). La meta de
@@ -56,7 +58,8 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
   se guardan en Firebase (proyecto propio "Registro de Horas", Realtime Database) y aparecen solos
   en el otro dispositivo en segundos. Sin internet se guarda local y se sube al volver la conexión;
   si ambos cambiaron algo a la vez, se combina sin perder jornadas.
-- **Diseño**: color morado de la Universidad de Magallanes, pensado primero para el celular.
+- **Diseño**: color morado de la Universidad de Magallanes, pensado primero para el celular. Todas
+  las horas se muestran y se ingresan en formato de 24 horas.
 
 ## Uso local
 

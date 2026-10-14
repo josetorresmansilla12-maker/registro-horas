@@ -340,6 +340,43 @@ body {
   min-width: 0;
 }
 
+/* Selector de hora en 24 horas (hora : minutos), reemplaza al reloj nativo. */
+.hora24 {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hora24 select {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  text-align-last: center;
+  background: #faf8fc;
+  color: var(--color-text);
+}
+
+.hora24 select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(92, 45, 130, 0.15);
+}
+
+.hora24-sep {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
+
 .stepper-btn {
   flex: 0 0 auto;
   width: 40px;
@@ -1852,7 +1889,17 @@ body {
   #marcaje-table tbody td:nth-child(6) { grid-area: acciones; text-align: left; margin-top: 4px; }
   #marcaje-table tbody tr.dia-rojo td:nth-child(2) { color: var(--color-danger-dark); font-weight: 700; }
   #informe-table .jornadas-cell {
-    min-width: 112px;
+    min-width: 0;
+  }
+  #informe-table .fecha-anio {
+    display: none;
+  }
+  #informe-table thead th {
+    white-space: normal;
+    letter-spacing: 0;
+  }
+  #informe-table tbody td:nth-child(4) {
+    white-space: nowrap;
   }
   .list-header .segmented {
     width: 100%;
@@ -2183,12 +2230,113 @@ body {
   }
 }
 
+/* ---------- Vista previa de la nota en el informe ---------- */
+
+.nota-informe {
+  margin-top: 6px;
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-tint);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.nota-informe-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.nota-informe-texto {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-primary-dark);
+}
+
+#marcaje-nota-informe-campo {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#marcaje-nota-informe-campo textarea {
+  width: 100%;
+}
+
+/* ---------- Informe: descripción de cada día y arreglo de horas ---------- */
+
+#informe-opciones-section .switch-option {
+  margin-bottom: 8px;
+  align-items: flex-start;
+}
+
+#informe-table tbody tr.con-descripcion td {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+#informe-table tbody tr.fila-descripcion td {
+  padding-top: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  white-space: normal;
+  line-height: 1.4;
+}
+
+#informe-table tbody tr.fila-descripcion.fila-feriado td {
+  color: var(--color-danger-dark);
+}
+
+#informe-table tbody tr.fila-descripcion.fila-no-convocado td,
+#informe-table tbody tr.fila-descripcion.fila-licencia td {
+  color: #8a5a00;
+}
+
+.informe-arreglo-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.informe-cifra {
+  border: 1px solid var(--informe-morado-borde, var(--color-border));
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--informe-morado-suave, var(--color-tint));
+}
+
+.informe-cifra span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.informe-cifra strong {
+  font-size: 1.1rem;
+  color: var(--informe-morado-oscuro, var(--color-primary-dark));
+}
+
+.informe-cifra.favor strong { color: var(--color-success); }
+.informe-cifra.contra strong { color: var(--color-danger-dark); }
+
+#informe-arreglo-tabla tr.fila-favor .celda-saldo { color: var(--color-success); font-weight: 800; }
+#informe-arreglo-tabla tr.fila-contra .celda-saldo { color: var(--color-danger-dark); font-weight: 800; }
+
 @media print {
   .app-header,
   .tabs,
   .app-alerts,
   .app-toasts,
   #informe-periodo-section,
+  #informe-opciones-section,
   #informe-print-btn {
     display: none !important;
   }
@@ -2202,6 +2350,9 @@ body {
   .informe-table-wrap {
     max-height: none;
     overflow: visible;
+  }
+  #informe-table .fecha-anio {
+    display: inline !important;
   }
   #tab-informe .form-section {
     border: 1px solid #ddd;

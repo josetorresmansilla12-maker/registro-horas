@@ -195,22 +195,19 @@ function rhRegistroMinutes(registro) {
   }, 0);
 }
 
-// "09:00" -> "9:00 AM" / "14:30" -> "2:30 PM". Cadena vacía si no es válida.
-function rhFormatHora12(hhmm) {
+// Hora en formato de 24 horas: "9:05" / "09:05" -> "09:05". Las horas se
+// guardan siempre así ("HH:MM"); esto solo normaliza cómo se muestran.
+// Cadena vacía si no es válida.
+function rhFormatHora(hhmm) {
   var mins = rhTimeToMinutes(hhmm);
   if (mins === null) return "";
-  var h = Math.floor(mins / 60);
-  var m = mins % 60;
-  var ampm = h < 12 ? "AM" : "PM";
-  var h12 = h % 12;
-  if (h12 === 0) h12 = 12;
-  return h12 + ":" + String(m).padStart(2, "0") + " " + ampm;
+  return rhMinutesToTimeStr(mins);
 }
 
-// "9:00 AM – 1:00 PM" para un bloque; "—" si está incompleto.
-function rhFormatBloque12(block) {
+// "09:00 – 13:00" para un bloque; "—" si está incompleto.
+function rhFormatBloque(block) {
   if (!block || !block.entrada || !block.salida) return "—";
-  return rhFormatHora12(block.entrada) + " – " + rhFormatHora12(block.salida);
+  return rhFormatHora(block.entrada) + " – " + rhFormatHora(block.salida);
 }
 
 // Texto de todas las jornadas de un día, pensado para tablas e informes:
@@ -223,7 +220,7 @@ function rhFormatJornadasRegistro(registro) {
     return b && b.entrada && b.salida;
   });
   if (bloques.length === 0) return "—";
-  return bloques.map(rhFormatBloque12).join(" · ");
+  return bloques.map(rhFormatBloque).join(" · ");
 }
 
 function rhMinutesToHM(minutes) {
@@ -263,13 +260,104 @@ function rhStepTimeInput(inputEl, deltaMinutes) {
   inputEl.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-// Envuelve cada <input type="time"> con botones -/+ de una hora. El picker
-// nativo (rueda estilo iOS en Safari) sigue funcionando igual al tocar el
-// campo; esto solo agrega un atajo para no tener que girarla varias veces.
+// ---------- Selector de hora en 24 horas ----------
+//
+// Los <input type="time"> del navegador muestran AM/PM si el teléfono está
+// configurado en 12 horas, y eso no se puede cambiar desde la página. Por eso
+// cada uno se reemplaza por dos listas (hora 00–23 y minutos 00–59), que
+// siempre van en 24 horas y en el teléfono se eligen con la rueda.
+// El input original queda oculto como "dueño" del valor ("HH:MM" o ""): el
+// resto del código lo sigue leyendo y escribiendo igual, y recibe los mismos
+// eventos input/change cuando se cambia la hora.
+function rhConvertirHora24(input) {
+  var desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  var valorInicial = input.value;
+  input.type = "hidden";
+
+  var wrap = document.createElement("div");
+  wrap.className = "hora24";
+  input.parentNode.insertBefore(wrap, input);
+
+  function crearLista(etiqueta, cantidad) {
+    var sel = document.createElement("select");
+    sel.setAttribute("aria-label", etiqueta);
+    var vacio = document.createElement("option");
+    vacio.value = "";
+    vacio.textContent = "--";
+    sel.appendChild(vacio);
+    for (var i = 0; i < cantidad; i++) {
+      var opt = document.createElement("option");
+      opt.value = String(i).padStart(2, "0");
+      opt.textContent = opt.value;
+      sel.appendChild(opt);
+    }
+    return sel;
+  }
+  var selH = crearLista("Hora", 24);
+  var selM = crearLista("Minutos", 60);
+  selH.className = "hora24-h";
+  selM.className = "hora24-m";
+  var sep = document.createElement("span");
+  sep.className = "hora24-sep";
+  sep.textContent = ":";
+  wrap.appendChild(selH);
+  wrap.appendChild(sep);
+  wrap.appendChild(selM);
+  wrap.appendChild(input);
+
+  function pintar(valor) {
+    var mins = rhTimeToMinutes(valor);
+    if (mins === null) {
+      selH.value = "";
+      selM.value = "";
+      return;
+    }
+    selH.value = String(Math.floor(mins / 60) % 24).padStart(2, "0");
+    selM.value = String(mins % 60).padStart(2, "0");
+  }
+
+  Object.defineProperty(input, "value", {
+    configurable: true,
+    get: function () { return desc.get.call(input); },
+    set: function (v) {
+      desc.set.call(input, v || "");
+      pintar(v);
+    }
+  });
+
+  function emitir() {
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  selH.addEventListener("change", function () {
+    if (!selH.value) {
+      selM.value = "";
+      desc.set.call(input, "");
+    } else {
+      if (!selM.value) selM.value = "00";
+      desc.set.call(input, selH.value + ":" + selM.value);
+    }
+    emitir();
+  });
+
+  selM.addEventListener("change", function () {
+    // Minutos sin hora todavía: se espera a que elijas la hora.
+    desc.set.call(input, selH.value ? selH.value + ":" + (selM.value || "00") : "");
+    emitir();
+  });
+
+  desc.set.call(input, valorInicial || "");
+  pintar(valorInicial);
+  return wrap;
+}
+
+// Agrega botones -/+ de una hora alrededor del selector, como atajo.
 function rhWrapWithTimeStepper(input) {
+  var hora = rhConvertirHora24(input);
   var wrapper = document.createElement("div");
   wrapper.className = "time-stepper";
-  input.parentNode.insertBefore(wrapper, input);
+  hora.parentNode.insertBefore(wrapper, hora);
 
   var minus = document.createElement("button");
   minus.type = "button";
@@ -284,7 +372,7 @@ function rhWrapWithTimeStepper(input) {
   plus.setAttribute("aria-label", "Sumar 1 hora");
 
   wrapper.appendChild(minus);
-  wrapper.appendChild(input);
+  wrapper.appendChild(hora);
   wrapper.appendChild(plus);
 
   minus.addEventListener("click", function () { rhStepTimeInput(input, -60); });
@@ -293,10 +381,7 @@ function rhWrapWithTimeStepper(input) {
 
 function rhEnhanceTimeInputs(root) {
   var scope = root || document;
-  scope.querySelectorAll('input[type="time"]').forEach(function (input) {
-    if (input.closest(".time-stepper")) return;
-    rhWrapWithTimeStepper(input);
-  });
+  scope.querySelectorAll('input[type="time"]').forEach(rhWrapWithTimeStepper);
 }
 
 // ---------- Descarga de archivos ----------

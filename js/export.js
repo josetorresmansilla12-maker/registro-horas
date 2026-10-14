@@ -9,6 +9,7 @@ var exportConfirmBtn = rhEl("export-confirm-btn");
 var exportInicioInput = rhEl("export-inicio");
 var exportFinInput = rhEl("export-fin");
 var exportIncluirProyectosInput = rhEl("export-incluir-proyectos");
+var exportIncluirArregloInput = rhEl("export-incluir-arreglo");
 
 openExportBtn.addEventListener("click", function () {
   var range = rhMonthRange(rhTodayISO());
@@ -90,7 +91,10 @@ function rhBuildInformeRows(start, end) {
     var registro = rhGetRegistroByFecha(iso);
     var minutos = rhRegistroMinutes(registro);
     totalMin += minutos;
-    var nota = rhResumenActividadDia(registro);
+    // Como en el Informe: actividades + descripción resumida y corregida.
+    var acts = rhRegistroActividades(registro).join("; ");
+    var desc = rhTextoInforme(registro);
+    var nota = acts && desc ? acts + " — " + desc : (acts || desc);
     var estadoLabel = rhEstadoOLicenciaLabel(iso);
     if (estadoLabel) {
       nota = nota ? estadoLabel + " · " + nota : estadoLabel;
@@ -106,6 +110,36 @@ function rhBuildInformeRows(start, end) {
   rows.push(["", "", "", ""]);
   rows.push(["", "TOTAL DEL PERÍODO", rhMinutesToDecimal(totalMin), rhMinutesToHM(totalMin)]);
 
+  return rows;
+}
+
+// Hoja "Arreglo de horas": saldo según el contrato y detalle por mes.
+function rhBuildArregloRows(start, end) {
+  var config = rhLoadConfig();
+  var b = rhBalancePeriodo(start, end);
+  var unidad = rhArregloUnidadElegida(config, b.hasta);
+  var dias = config.diasLaborales.length || 5;
+  var abs = Math.abs(b.balanceMin);
+  var rows = [
+    ["Arreglo de horas"],
+    ["Período", "Del " + rhFormatDateDisplay(b.desde) + " al " + rhFormatDateDisplay(b.hasta)],
+    ["Contrato", rhArregloTextoContrato(config)],
+    ["Horas trabajadas", rhMinutesToDecimal(b.trabajadoMin), rhMinutesToHM(b.trabajadoMin)],
+    ["Horas según contrato", rhMinutesToDecimal(b.esperadoMin), rhMinutesToHM(b.esperadoMin)],
+    [b.balanceMin >= 0 ? "Saldo a mi favor" : "Saldo en contra", rhMinutesToDecimal(abs), rhMinutesToHM(abs)],
+    ["En " + unidad.plural + " (" + rhMinutesToHM(unidad.minutos) + ")", unidad.minutos > 0 ? Math.round((abs / unidad.minutos) * 10) / 10 : ""],
+    ["En semanas de " + rhMinutesToHM(unidad.minutos * dias) + " (lunes a viernes)", unidad.minutos > 0 ? Math.round((abs / (unidad.minutos * dias)) * 10) / 10 : ""],
+    [],
+    ["Mes", "Horas trabajadas", "Horas según contrato", "Saldo (horas)", "Saldo"]
+  ];
+  rhMesesEnRango(start, end).forEach(function (mes) {
+    var r = rhMonthRange(mes);
+    var bm = rhBalancePeriodo(rhCompareISO(r.start, start) < 0 ? start : r.start, rhCompareISO(r.end, end) > 0 ? end : r.end);
+    if (bm.trabajadoMin === 0 && bm.esperadoMin === 0) return;
+    rows.push([rhNombreMes(mes, true), rhMinutesToDecimal(bm.trabajadoMin), rhMinutesToDecimal(bm.esperadoMin),
+      rhMinutesToDecimal(bm.balanceMin), rhConSigno(bm.balanceMin)]);
+  });
+  rows.push([], ["No se cuentan como días a trabajar los feriados, los días sin convocatoria ni las licencias."]);
   return rows;
 }
 
@@ -146,6 +180,12 @@ exportConfirmBtn.addEventListener("click", function () {
   var wsInforme = XLSX.utils.aoa_to_sheet(informeRows);
   wsInforme["!cols"] = [{ wch: 8 }, { wch: 12 }, { wch: 16 }, { wch: 36 }];
   XLSX.utils.book_append_sheet(wb, wsInforme, "Informe");
+
+  if (exportIncluirArregloInput.checked) {
+    var wsArreglo = XLSX.utils.aoa_to_sheet(rhBuildArregloRows(start, end));
+    wsArreglo["!cols"] = [{ wch: 38 }, { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, wsArreglo, "Arreglo de horas");
+  }
 
   if (exportIncluirProyectosInput.checked) {
     var proyectoRows = rhBuildProyectosRows(start, end);

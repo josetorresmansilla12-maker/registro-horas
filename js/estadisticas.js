@@ -1050,7 +1050,7 @@ function rhStatsRenderMasEstadisticas(p) {
   cont.appendChild(rhStatsMiniCard("Días con más de dos jornadas", String(masDeDos), pctDias(masDeDos)));
   cont.appendChild(rhStatsMiniCard("Horas en jornada de tarde",
     rhMinutesToHM(tardeMin),
-    rhPlural(diasTarde, "día", "días") + " (" + rhFormatHora12(ventanaTarde.entrada) + " – " + rhFormatHora12(ventanaTarde.salida) + ")"));
+    rhPlural(diasTarde, "día", "días") + " (" + rhFormatHora(ventanaTarde.entrada) + " – " + rhFormatHora(ventanaTarde.salida) + ")"));
   cont.appendChild(rhStatsMiniCard("Actividad más realizada",
     topActividad ? topActividad.nombre : "—",
     topActividad ? rhPlural(topActividad.dias, "día", "días") : "Aún sin actividades marcadas",

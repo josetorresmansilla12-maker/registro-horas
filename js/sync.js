@@ -447,7 +447,7 @@ function rhSyncCambiarEstado(estado) {
   if (el) {
     var texto = RH_SYNC_TEXTO_ESTADO[estado] || "";
     if (estado === "sincronizado" && rhSync.ultimaSync) {
-      texto += " · " + rhFormatHora12(String(rhSync.ultimaSync.getHours()).padStart(2, "0") + ":" +
+      texto += " · " + rhFormatHora(String(rhSync.ultimaSync.getHours()).padStart(2, "0") + ":" +
         String(rhSync.ultimaSync.getMinutes()).padStart(2, "0"));
     }
     el.textContent = texto;
