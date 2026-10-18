@@ -260,15 +260,153 @@ function rhStepTimeInput(inputEl, deltaMinutes) {
   inputEl.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-// ---------- Selector de hora en 24 horas ----------
+// ---------- Selector de hora en 24 horas (ruleta) ----------
 //
-// Los <input type="time"> del navegador muestran AM/PM si el teléfono está
-// configurado en 12 horas, y eso no se puede cambiar desde la página. Por eso
-// cada uno se reemplaza por dos listas (hora 00–23 y minutos 00–59), que
-// siempre van en 24 horas y en el teléfono se eligen con la rueda.
+// La ruleta nativa del iPhone sigue la configuración del teléfono: si está en
+// 12 horas muestra AM/PM y la página no lo puede cambiar. Por eso cada campo
+// de hora es un botón que, con un solo toque, abre una ruleta propia con
+// las horas (00–23) y los minutos (00–59) lado a lado, igual a la del iPhone
+// pero siempre en 24 horas.
 // El input original queda oculto como "dueño" del valor ("HH:MM" o ""): el
 // resto del código lo sigue leyendo y escribiendo igual, y recibe los mismos
-// eventos input/change cuando se cambia la hora.
+// eventos input/change cuando se elige una hora.
+
+var RH_RUEDA_ALTO = 44; // alto de cada número de la ruleta (px)
+var rhRueda = null;
+
+function rhPad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function rhRuedaCrearColumna(cantidad, etiqueta) {
+  var col = document.createElement("div");
+  col.className = "rueda-col";
+  col.setAttribute("aria-label", etiqueta);
+  col.appendChild(Object.assign(document.createElement("div"), { className: "rueda-relleno" }));
+  for (var i = 0; i < cantidad; i++) {
+    var item = document.createElement("div");
+    item.className = "rueda-item";
+    item.textContent = rhPad2(i);
+    item.dataset.indice = String(i);
+    col.appendChild(item);
+  }
+  col.appendChild(Object.assign(document.createElement("div"), { className: "rueda-relleno" }));
+  col.cantidad = cantidad;
+
+  // Tocar un número lo lleva al centro (útil también con el mouse).
+  col.addEventListener("click", function (e) {
+    var item = e.target.closest(".rueda-item");
+    if (item) rhRuedaIr(col, Number(item.dataset.indice), true);
+  });
+  var pendiente = false;
+  col.addEventListener("scroll", function () {
+    if (pendiente) return;
+    pendiente = true;
+    requestAnimationFrame(function () {
+      pendiente = false;
+      rhRuedaMarcar(col);
+    });
+  });
+  return col;
+}
+
+function rhRuedaIndice(col) {
+  return Math.max(0, Math.min(col.cantidad - 1, Math.round(col.scrollTop / RH_RUEDA_ALTO)));
+}
+
+function rhRuedaIr(col, indice, suave) {
+  col.scrollTo({ top: indice * RH_RUEDA_ALTO, behavior: suave ? "smooth" : "auto" });
+  if (!suave) rhRuedaMarcar(col);
+}
+
+function rhRuedaMarcar(col) {
+  var indice = rhRuedaIndice(col);
+  var previo = col.querySelector(".rueda-item.sel");
+  if (previo && Number(previo.dataset.indice) === indice) return;
+  if (previo) previo.classList.remove("sel");
+  var item = col.querySelector('.rueda-item[data-indice="' + indice + '"]');
+  if (item) item.classList.add("sel");
+}
+
+function rhRuedaCrear() {
+  var overlay = document.createElement("div");
+  overlay.className = "rueda-overlay hidden";
+  var hoja = document.createElement("div");
+  hoja.className = "rueda-hoja";
+  hoja.setAttribute("role", "dialog");
+  hoja.setAttribute("aria-modal", "true");
+
+  var barra = document.createElement("div");
+  barra.className = "rueda-barra";
+  var cancelar = Object.assign(document.createElement("button"), { type: "button", className: "rueda-accion", textContent: "Cancelar" });
+  var titulo = Object.assign(document.createElement("span"), { className: "rueda-titulo", textContent: "Hora" });
+  var listo = Object.assign(document.createElement("button"), { type: "button", className: "rueda-accion rueda-listo", textContent: "Listo" });
+  barra.appendChild(cancelar);
+  barra.appendChild(titulo);
+  barra.appendChild(listo);
+
+  var cuerpo = document.createElement("div");
+  cuerpo.className = "rueda-cuerpo";
+  var banda = Object.assign(document.createElement("div"), { className: "rueda-banda" });
+  var colH = rhRuedaCrearColumna(24, "Hora");
+  var colM = rhRuedaCrearColumna(60, "Minutos");
+  var sep = Object.assign(document.createElement("span"), { className: "rueda-sep", textContent: ":" });
+  cuerpo.appendChild(banda);
+  cuerpo.appendChild(colH);
+  cuerpo.appendChild(sep);
+  cuerpo.appendChild(colM);
+
+  var borrar = Object.assign(document.createElement("button"), { type: "button", className: "rueda-borrar btn-link", textContent: "Dejar sin hora" });
+
+  hoja.appendChild(barra);
+  hoja.appendChild(cuerpo);
+  hoja.appendChild(borrar);
+  overlay.appendChild(hoja);
+  document.body.appendChild(overlay);
+
+  var r = { overlay: overlay, titulo: titulo, colH: colH, colM: colM, alElegir: null };
+  function cerrar() {
+    overlay.classList.add("hidden");
+    document.body.classList.remove("rueda-abierta");
+    r.alElegir = null;
+  }
+  cancelar.addEventListener("click", cerrar);
+  overlay.addEventListener("click", function (e) { if (e.target === overlay) cerrar(); });
+  listo.addEventListener("click", function () {
+    var fn = r.alElegir;
+    var valor = rhPad2(rhRuedaIndice(colH)) + ":" + rhPad2(rhRuedaIndice(colM));
+    cerrar();
+    if (fn) fn(valor);
+  });
+  borrar.addEventListener("click", function () {
+    var fn = r.alElegir;
+    cerrar();
+    if (fn) fn("");
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !overlay.classList.contains("hidden")) cerrar();
+  });
+  return r;
+}
+
+// Abre la ruleta en `valor` (o, si está vacío, en la hora actual redondeada a
+// 5 minutos) y llama a `alElegir("HH:MM")` al tocar Listo ("" si se borra).
+function rhAbrirRuedaHora(valor, titulo, alElegir) {
+  if (!rhRueda) rhRueda = rhRuedaCrear();
+  var mins = rhTimeToMinutes(valor);
+  if (mins === null) {
+    var ahora = new Date();
+    mins = ahora.getHours() * 60 + Math.round(ahora.getMinutes() / 5) * 5;
+    if (mins >= 1440) mins = 1435;
+  }
+  rhRueda.titulo.textContent = titulo || "Hora";
+  rhRueda.alElegir = alElegir;
+  rhRueda.overlay.classList.remove("hidden");
+  document.body.classList.add("rueda-abierta");
+  rhRuedaIr(rhRueda.colH, Math.floor(mins / 60), false);
+  rhRuedaIr(rhRueda.colM, mins % 60, false);
+}
+
 function rhConvertirHora24(input) {
   var desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
   var valorInicial = input.value;
@@ -278,42 +416,22 @@ function rhConvertirHora24(input) {
   wrap.className = "hora24";
   input.parentNode.insertBefore(wrap, input);
 
-  function crearLista(etiqueta, cantidad) {
-    var sel = document.createElement("select");
-    sel.setAttribute("aria-label", etiqueta);
-    var vacio = document.createElement("option");
-    vacio.value = "";
-    vacio.textContent = "--";
-    sel.appendChild(vacio);
-    for (var i = 0; i < cantidad; i++) {
-      var opt = document.createElement("option");
-      opt.value = String(i).padStart(2, "0");
-      opt.textContent = opt.value;
-      sel.appendChild(opt);
-    }
-    return sel;
+  var boton = document.createElement("button");
+  boton.type = "button";
+  boton.className = "hora24-boton";
+  if (input.id) {
+    boton.id = input.id + "-boton";
+    // La etiqueta ("Entrada", "Salida") también abre la ruleta.
+    var etiquetaFor = document.querySelector('label[for="' + input.id + '"]');
+    if (etiquetaFor) etiquetaFor.htmlFor = boton.id;
   }
-  var selH = crearLista("Hora", 24);
-  var selM = crearLista("Minutos", 60);
-  selH.className = "hora24-h";
-  selM.className = "hora24-m";
-  var sep = document.createElement("span");
-  sep.className = "hora24-sep";
-  sep.textContent = ":";
-  wrap.appendChild(selH);
-  wrap.appendChild(sep);
-  wrap.appendChild(selM);
+  wrap.appendChild(boton);
   wrap.appendChild(input);
 
   function pintar(valor) {
     var mins = rhTimeToMinutes(valor);
-    if (mins === null) {
-      selH.value = "";
-      selM.value = "";
-      return;
-    }
-    selH.value = String(Math.floor(mins / 60) % 24).padStart(2, "0");
-    selM.value = String(mins % 60).padStart(2, "0");
+    boton.textContent = mins === null ? "--:--" : rhMinutesToTimeStr(mins);
+    boton.classList.toggle("vacia", mins === null);
   }
 
   Object.defineProperty(input, "value", {
@@ -325,26 +443,16 @@ function rhConvertirHora24(input) {
     }
   });
 
-  function emitir() {
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-
-  selH.addEventListener("change", function () {
-    if (!selH.value) {
-      selM.value = "";
-      desc.set.call(input, "");
-    } else {
-      if (!selM.value) selM.value = "00";
-      desc.set.call(input, selH.value + ":" + selM.value);
-    }
-    emitir();
-  });
-
-  selM.addEventListener("change", function () {
-    // Minutos sin hora todavía: se espera a que elijas la hora.
-    desc.set.call(input, selH.value ? selH.value + ":" + (selM.value || "00") : "");
-    emitir();
+  boton.addEventListener("click", function () {
+    var field = wrap.closest(".field");
+    var etiqueta = field && field.querySelector("label");
+    var titulo = etiqueta ? etiqueta.textContent.trim() : "Hora";
+    rhAbrirRuedaHora(desc.get.call(input), titulo, function (nuevo) {
+      desc.set.call(input, nuevo);
+      pintar(nuevo);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
   });
 
   desc.set.call(input, valorInicial || "");

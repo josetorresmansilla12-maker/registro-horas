@@ -59,7 +59,8 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
   en el otro dispositivo en segundos. Sin internet se guarda local y se sube al volver la conexión;
   si ambos cambiaron algo a la vez, se combina sin perder jornadas.
 - **Diseño**: color morado de la Universidad de Magallanes, pensado primero para el celular. Todas
-  las horas se muestran y se ingresan en formato de 24 horas.
+  las horas se muestran y se ingresan en formato de 24 horas: al tocar un campo de hora se abre una
+  ruleta como la del iPhone, con las horas (00–23) y los minutos lado a lado.
 
 ## Uso local
 
