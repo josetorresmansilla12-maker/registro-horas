@@ -120,6 +120,131 @@ function rhInformeBlockLabel(minutes) {
   return minutes > 0 ? rhMinutesToHM(minutes) : "—";
 }
 
+// ---- Tus datos en el informe: nombre, cargo, institución y logo ----
+//
+// Se guardan en la configuración (config.informe), así viajan con el
+// respaldo y la sincronización. El logo se achica antes de guardarlo para
+// que no pese.
+
+var RH_LOGO_MAX_ALTO = 160;
+var RH_LOGO_MAX_ANCHO = 480;
+var rhInformeLogoNuevo = null; // logo elegido y aún sin guardar ("" = quitarlo)
+
+function rhInformeDatos() {
+  var d = rhLoadConfig().informe || {};
+  return { nombre: d.nombre || "", cargo: d.cargo || "", institucion: d.institucion || "", logo: d.logo || "" };
+}
+
+function rhInformeMostrarLogoPreview(url) {
+  var img = rhEl("informe-logo-preview");
+  img.classList.toggle("hidden", !url);
+  if (url) img.src = url;
+  else img.removeAttribute("src");
+  rhEl("informe-logo-quitar").classList.toggle("hidden", !url);
+}
+
+function rhInformeRenderDatosForm() {
+  var d = rhInformeDatos();
+  rhEl("informe-dato-nombre").value = d.nombre;
+  rhEl("informe-dato-cargo").value = d.cargo;
+  rhEl("informe-dato-institucion").value = d.institucion || "Universidad de Magallanes";
+  rhEl("informe-dato-logo").value = "";
+  rhInformeLogoNuevo = null;
+  rhInformeMostrarLogoPreview(d.logo);
+}
+
+// Achica la imagen (máximo 480 × 160 px) y la devuelve como data URL: PNG para
+// conservar la transparencia, o JPG si como PNG queda muy pesada (ej. una foto).
+function rhInformeAchicarLogo(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function () {
+        var escala = Math.min(1, RH_LOGO_MAX_ALTO / img.height, RH_LOGO_MAX_ANCHO / img.width);
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * escala));
+        canvas.height = Math.max(1, Math.round(img.height * escala));
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var png = canvas.toDataURL("image/png");
+        if (png.length <= 120000) {
+          resolve(png);
+          return;
+        }
+        ctx.globalCompositeOperation = "destination-over";
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+rhEl("informe-datos").addEventListener("toggle", function () {
+  if (rhEl("informe-datos").open) rhInformeRenderDatosForm();
+});
+
+rhEl("informe-dato-logo").addEventListener("change", function () {
+  var file = this.files && this.files[0];
+  if (!file) return;
+  if (!/^image\//.test(file.type)) {
+    rhShowAlert("El logo debe ser una imagen (PNG o JPG).", "error");
+    return;
+  }
+  rhInformeAchicarLogo(file).then(function (url) {
+    rhInformeLogoNuevo = url;
+    rhInformeMostrarLogoPreview(url);
+  }, function () {
+    rhShowAlert("No se pudo leer esa imagen. Prueba con un PNG o JPG.", "error");
+  });
+});
+
+rhEl("informe-logo-quitar").addEventListener("click", function () {
+  rhInformeLogoNuevo = "";
+  rhEl("informe-dato-logo").value = "";
+  rhInformeMostrarLogoPreview("");
+});
+
+rhEl("informe-datos-guardar").addEventListener("click", function () {
+  var actual = rhInformeDatos();
+  rhSaveConfig(Object.assign({}, rhLoadConfig(), {
+    informe: {
+      nombre: rhEl("informe-dato-nombre").value.trim(),
+      cargo: rhEl("informe-dato-cargo").value.trim(),
+      institucion: rhEl("informe-dato-institucion").value.trim(),
+      logo: rhInformeLogoNuevo !== null ? rhInformeLogoNuevo : actual.logo
+    }
+  }));
+  rhInformeLogoNuevo = null;
+  rhEl("informe-datos").open = false;
+  renderInforme();
+  rhShowAlert("Tus datos del informe quedaron guardados.", "success");
+});
+
+// Membrete (logo, institución, nombre y cargo) arriba del informe y firma al final.
+function rhInformeRenderMembrete(rangoValido) {
+  var d = rhInformeDatos();
+  rhEl("informe-membrete").classList.toggle("hidden", !(d.nombre || d.cargo || d.institucion || d.logo));
+  var logo = rhEl("informe-logo");
+  logo.classList.toggle("hidden", !d.logo);
+  if (d.logo) logo.src = d.logo;
+  else logo.removeAttribute("src");
+  logo.alt = d.institucion ? "Logo " + d.institucion : "Logo";
+  rhEl("informe-institucion").textContent = d.institucion;
+  rhEl("informe-persona").textContent = d.nombre;
+  rhEl("informe-cargo").textContent = d.cargo;
+
+  rhEl("informe-firma").classList.toggle("hidden", !rangoValido || !d.nombre);
+  rhEl("informe-firma-nombre").textContent = d.nombre;
+  rhEl("informe-firma-cargo").textContent = [d.cargo, d.institucion].filter(Boolean).join(" · ");
+  rhEl("informe-firma-fecha").textContent = "Emitido el " + rhFormatDateDisplay(rhTodayISO());
+}
+
 // ---- Qué incluir (se recuerda en este dispositivo) ----
 
 var informeIncluirDescripciones = rhEl("informe-incluir-descripciones");
@@ -157,6 +282,7 @@ function renderInforme() {
   rhEl("informe-empty-state").classList.toggle("hidden", !!rangoValido);
   rhEl("informe-vista-trabajadas").classList.toggle("hidden", deben || !rangoValido);
   rhEl("informe-vista-deben").classList.toggle("hidden", !deben || !rangoValido);
+  rhInformeRenderMembrete(rangoValido);
   if (!rangoValido) return;
 
   if (deben) rhInformeRenderDeben(inicio, fin);

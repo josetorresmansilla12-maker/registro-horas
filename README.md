@@ -12,8 +12,9 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
   múltiple: Talleres vocacionales Kuder, Aplicaciones de test vocacionales Kuder, Oficina, Home
   office, Ensayos PAES y "Otro" para escribir una); nota/bitácora; historial
   mensual (en el celular se ve como tarjetas) con fines de semana y feriados en rojo, "no
-  convocado" en ámbar, días libres en celeste y los sábados y domingos como **Descanso**, para
-  seguir cada semana. Si guardas una jornada en una fecha que ya tenía registro, se **suma** a lo
+  convocado" en ámbar, días libres en celeste, los sábados y domingos como **Descanso**, para
+  seguir cada semana, y los días hábiles ya pasados **sin registro** destacados, con botones para
+  registrarlos o marcarlos como día libre. Si guardas una jornada en una fecha que ya tenía registro, se **suma** a lo
   existente (con aviso) en vez de reemplazarlo. Al editar un día y cambiarle la fecha, la jornada
   completa (horas, nota y actividades) se mueve a la nueva fecha.
 - **Ocupar horas libres** (botón 🌴 en Marcaje y en Arreglo de horas): para los días que no
@@ -55,7 +56,8 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
     respaldo día por día (trabajé / contrato / libre / saldo).
   Selector de período (desde el inicio, mes actual, últimos 30/60/90 días, año o fechas a mano),
   botón ✏️ en cada día para corregirlo ahí mismo (el cambio se guarda en toda la app) y botón
-  Imprimir / PDF.
+  Imprimir / PDF. Con "Tus datos en el informe" se agregan tu nombre, cargo, institución y logo
+  arriba del informe, y una línea de firma con la fecha de emisión al final.
 - **Funciones y Proyectos**: bitácora aparte de responsabilidades o proyectos asignados.
 - **Configuración**: días laborales, fecha de inicio del seguimiento, sincronización, lista de
   actividades habituales y una Papelera con lo eliminado (recuperable por 30 días). La meta de

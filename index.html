@@ -528,9 +528,45 @@
           Incluir la descripción de cada día (resumida y con la ortografía corregida)
         </label>
         <p class="label-hint informe-editar-hint">¿Ves algo raro? Toca ✏️ en un día para corregirlo: el cambio se guarda en toda la app.</p>
+
+        <details class="informe-datos" id="informe-datos">
+          <summary>👤 Tus datos en el informe (nombre, cargo y logo)</summary>
+          <div class="field">
+            <label for="informe-dato-nombre">Nombre</label>
+            <input type="text" id="informe-dato-nombre" maxlength="80" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="informe-dato-cargo">Cargo</label>
+            <input type="text" id="informe-dato-cargo" maxlength="80" placeholder="Ej: Profesional de apoyo" />
+          </div>
+          <div class="field">
+            <label for="informe-dato-institucion">Institución o unidad</label>
+            <input type="text" id="informe-dato-institucion" maxlength="100" placeholder="Ej: Universidad de Magallanes" />
+          </div>
+          <div class="field">
+            <label for="informe-dato-logo">Logo <span class="label-hint">(una imagen PNG o JPG; se achica sola)</span></label>
+            <div class="informe-logo-edit">
+              <img class="informe-logo-preview hidden" id="informe-logo-preview" alt="Logo elegido" />
+              <input type="file" id="informe-dato-logo" accept="image/png,image/jpeg,image/webp" />
+              <button type="button" class="btn-link hidden" id="informe-logo-quitar">Quitar logo</button>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary btn-small" id="informe-datos-guardar">Guardar mis datos</button>
+          </div>
+          <p class="label-hint">Aparecen arriba del informe y en la firma al final. Se guardan junto con tus datos (y se sincronizan).</p>
+        </details>
       </section>
 
       <section class="form-section informe-encabezado">
+        <div class="informe-membrete hidden" id="informe-membrete">
+          <img class="informe-logo hidden" id="informe-logo" alt="" />
+          <div class="informe-membrete-texto">
+            <span class="informe-institucion" id="informe-institucion"></span>
+            <strong class="informe-persona" id="informe-persona"></strong>
+            <span class="informe-cargo" id="informe-cargo"></span>
+          </div>
+        </div>
         <div class="list-header">
           <div>
             <h2 id="informe-doc-titulo">Informe de horas trabajadas</h2>
@@ -626,6 +662,13 @@
           <p class="label-hint">No cuentan como días a trabajar los fines de semana, feriados, días sin convocatoria, licencias ni días libres.</p>
         </section>
       </div>
+
+      <section class="form-section informe-firma hidden" id="informe-firma">
+        <div class="informe-firma-linea"></div>
+        <strong id="informe-firma-nombre"></strong>
+        <span id="informe-firma-cargo"></span>
+        <span class="informe-firma-fecha" id="informe-firma-fecha"></span>
+      </section>
     </section>
 
     <section id="tab-config" class="tab-panel hidden">

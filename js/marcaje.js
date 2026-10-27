@@ -856,6 +856,41 @@ function rhMarcajeBuildDescansoRow(fecha) {
   return tr;
 }
 
+// Fila de un día hábil ya pasado sin nada registrado: para notar olvidos y
+// registrarlo (o marcarlo como día libre) con un toque.
+function rhMarcajeBuildSinRegistroRow(fecha) {
+  var tr = document.createElement("tr");
+  tr.className = "fila-sin-registro";
+  [rhFormatDateDisplay(fecha), rhDayOfWeekLabel(fecha, true), "⚠️ Sin registro", "—", "¿Lo olvidaste? Regístralo o marca qué pasó ese día."].forEach(function (texto, i) {
+    var td = document.createElement("td");
+    if (i < 2) td.className = "celda-fecha";
+    if (i === 2) td.className = "jornadas-cell celda-estado";
+    if (i === 4) td.className = "note-cell";
+    td.textContent = texto;
+    tr.appendChild(td);
+  });
+
+  var tdActions = document.createElement("td");
+  tdActions.className = "col-actions";
+  var acciones = document.createElement("div");
+  acciones.className = "row-actions";
+  var registrar = document.createElement("button");
+  registrar.type = "button";
+  registrar.className = "btn btn-small btn-secondary";
+  registrar.textContent = "Registrar";
+  registrar.addEventListener("click", function () { rhMarcajeAbrirFecha(fecha); });
+  var libre = document.createElement("button");
+  libre.type = "button";
+  libre.className = "btn btn-small btn-libre";
+  libre.textContent = "🌴 Día libre";
+  libre.addEventListener("click", function () { rhAbrirOcuparLibre(fecha); });
+  acciones.appendChild(registrar);
+  acciones.appendChild(libre);
+  tdActions.appendChild(acciones);
+  tr.appendChild(tdActions);
+  return tr;
+}
+
 function renderMarcajeTable() {
   var range = rhMonthRange(rhMarcajeMesActual);
   var d = rhParseISO(rhMarcajeMesActual);
@@ -889,8 +924,16 @@ function renderMarcajeTable() {
     })
     .map(function (iso) { return { fecha: iso, descanso: true }; });
 
+  // Días hábiles ya pasados sin ningún registro ni justificación (feriado,
+  // licencia, no convocado): así se notan los olvidos.
+  var filasSinRegistro = rhDaysBetweenInclusive(range.start, range.end)
+    .filter(function (iso) {
+      return !fechasConRegistro[iso] && rhEstadoDia(iso, config, hoy).clave === "sin_registro";
+    })
+    .map(function (iso) { return { fecha: iso, sinRegistro: true }; });
+
   var filas = registros.map(function (r) { return { fecha: r.fecha, registro: r }; })
-    .concat(filasLicencia, filasDescanso)
+    .concat(filasLicencia, filasDescanso, filasSinRegistro)
     .sort(function (a, b) { return rhCompareISO(b.fecha, a.fecha); });
 
   rhClear(marcajeTableBody);
@@ -899,6 +942,7 @@ function renderMarcajeTable() {
   filas.forEach(function (item) {
     var tr = item.registro ? rhMarcajeBuildRegistroRow(item.registro)
       : item.descanso ? rhMarcajeBuildDescansoRow(item.fecha)
+      : item.sinRegistro ? rhMarcajeBuildSinRegistroRow(item.fecha)
       : rhMarcajeBuildLicenciaRow(item.fecha, item.licencia);
     marcajeTableBody.appendChild(tr);
   });

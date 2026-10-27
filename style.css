@@ -1405,6 +1405,21 @@ body.rueda-abierta {
   font-style: italic;
 }
 
+/* Día hábil ya pasado sin registro (posible olvido). */
+.data-table tbody tr.fila-sin-registro td {
+  background: #fffaf0;
+  color: var(--color-warning);
+}
+
+.data-table tbody tr.fila-sin-registro td.celda-fecha {
+  color: var(--color-text);
+}
+
+.data-table tbody tr.fila-sin-registro .note-cell {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
 /* ---------- Estadísticas: selector de mes de cada cuadro ---------- */
 
 .nav-mes {
@@ -2070,6 +2085,11 @@ body.rueda-abierta {
   #marcaje-table tbody tr.fila-descanso td:nth-child(3) { text-align: right; }
   #marcaje-table tbody tr.fila-descanso td:nth-child(n+4) { display: none; }
   #marcaje-table tbody tr.fila-dia-libre { border-color: var(--color-libre-borde); }
+  #marcaje-table tbody tr.fila-sin-registro {
+    border: 1.5px dashed #e0b45a;
+    background: #fffaf0;
+  }
+  #marcaje-table tbody tr.fila-sin-registro td { background: none; }
   #informe-table .jornadas-cell {
     min-width: 0;
   }
@@ -2906,6 +2926,122 @@ body.rueda-abierta {
   color: var(--color-primary-dark);
 }
 
+/* Membrete (logo, institución, nombre y cargo) y firma del informe. */
+.informe-membrete {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--informe-morado, var(--color-primary));
+}
+
+.informe-logo {
+  max-height: 64px;
+  max-width: 160px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.informe-membrete-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.informe-institucion {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--informe-morado-oscuro, var(--color-primary-dark));
+}
+
+.informe-persona {
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.informe-cargo {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.informe-firma {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  padding-top: 56px;
+}
+
+.informe-firma-linea {
+  width: 240px;
+  max-width: 80%;
+  border-top: 1.5px solid var(--color-text);
+  margin-bottom: 6px;
+}
+
+.informe-firma span {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.informe-firma .informe-firma-fecha {
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+.informe-datos {
+  margin-top: 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.informe-datos summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-primary);
+}
+
+.informe-datos[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.informe-datos[open] summary {
+  margin-bottom: 4px;
+}
+
+.informe-logo-edit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.informe-logo-preview {
+  max-height: 56px;
+  max-width: 180px;
+  object-fit: contain;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  padding: 4px;
+  background: #fff;
+}
+
+@media print {
+  #tab-informe .informe-firma {
+    border: none !important;
+    break-inside: avoid;
+  }
+}
+
 @media (max-width: 640px) {
   .data-table.tabla-deben tbody td,
   .data-table.tabla-deben thead th,
@@ -2923,5 +3059,12 @@ body.rueda-abierta {
   }
   .informe-encabezado .list-header {
     flex-direction: column;
+  }
+  .informe-membrete {
+    gap: 10px;
+  }
+  .informe-logo {
+    max-width: 96px;
+    max-height: 44px;
   }
 }
