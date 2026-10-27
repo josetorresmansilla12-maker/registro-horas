@@ -104,6 +104,18 @@ rhEl("informe-tipo").addEventListener("click", function (e) {
   else rhInformeMesActual();
 });
 
+// Fila con el nombre del mes, para separar los meses cuando la lista tiene
+// más de uno (así no hay que fijarse en el número del mes de cada fecha).
+function rhInformeFilaMes(iso, columnas, conAnio) {
+  var tr = document.createElement("tr");
+  tr.className = "fila-mes";
+  var td = document.createElement("td");
+  td.colSpan = columnas;
+  td.textContent = rhNombreMes(iso, conAnio);
+  tr.appendChild(td);
+  return tr;
+}
+
 // Botón ✏️ para corregir un día desde el informe (no se imprime).
 function rhInformeBotonEditar(iso) {
   var b = document.createElement("button");
@@ -308,8 +320,15 @@ function rhInformeRenderTrabajadas(inicio, fin) {
   rhClear(tbody);
   var conDescripciones = informeIncluirDescripciones.checked;
   var totalMin = 0;
+  var variosMeses = rhMesesEnRango(inicio, fin).length > 1;
+  var variosAnios = inicio.slice(0, 4) !== fin.slice(0, 4);
+  var mesActual = "";
 
   rhDaysBetweenInclusive(inicio, fin).forEach(function (iso) {
+    if (variosMeses && iso.slice(0, 7) !== mesActual) {
+      mesActual = iso.slice(0, 7);
+      tbody.appendChild(rhInformeFilaMes(iso, 4, variosAnios));
+    }
     var registro = rhGetRegistroByFecha(iso);
     var minTotal = rhRegistroMinutes(registro);
     totalMin += minTotal;
@@ -458,12 +477,19 @@ function rhInformeRenderDeben(inicio, fin) {
   rhClear(tbodyDias);
   var tot = { t: 0, e: 0, l: 0 };
   if (rhCompareISO(b.desde, b.hasta) <= 0) {
+    var variosMeses = rhMesesEnRango(b.desde, b.hasta).length > 1;
+    var variosAnios = b.desde.slice(0, 4) !== b.hasta.slice(0, 4);
+    var mesActual = "";
     rhDaysBetweenInclusive(b.desde, b.hasta).forEach(function (iso) {
       var registro = rhGetRegistroByFecha(iso);
       var t = rhRegistroMinutes(registro);
       var l = rhDiaLibreMinutos(registro);
       var e = iso === hoy && t === 0 ? 0 : rhMinutosEsperadosDia(iso, config);
       if (t === 0 && e === 0 && l === 0) return;
+      if (variosMeses && iso.slice(0, 7) !== mesActual) {
+        mesActual = iso.slice(0, 7);
+        tbodyDias.appendChild(rhInformeFilaMes(iso, 5, variosAnios));
+      }
       tot.t += t;
       tot.e += e;
       tot.l += l;

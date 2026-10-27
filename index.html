@@ -774,6 +774,39 @@
         </div>
       </section>
 
+      <section class="form-section privado-section" id="privado-section">
+        <div class="list-header">
+          <h2>🔒 Privado</h2>
+          <button type="button" class="btn btn-secondary btn-small hidden" id="privado-cerrar">🔒 Cerrar</button>
+        </div>
+
+        <form class="privado-bloqueado" id="privado-bloqueado" autocomplete="off" novalidate>
+          <label for="privado-clave">Contraseña</label>
+          <div class="field-inline">
+            <input type="password" id="privado-clave" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <button type="submit" class="btn btn-primary btn-small">Entrar</button>
+          </div>
+          <span class="error-msg" id="privado-error"></span>
+        </form>
+
+        <div class="privado-abierto hidden" id="privado-abierto">
+          <div class="segmented segmented-ancho privado-pestanas" role="tablist">
+            <button type="button" class="segmented-btn activo" role="tab" aria-selected="true">Modificación de horas posibles</button>
+          </div>
+
+          <div id="privado-horas">
+            <p class="label-hint">Días hábiles con pocas horas registradas. Si ese día también trabajaste por tu cuenta (por ejemplo, en la tarde en tu casa) y no lo registraste, agrégalo aquí: anota qué hiciste para que quede respaldado.</p>
+            <div class="periodo" id="periodo-privado"></div>
+            <div class="segmented segmented-ancho" id="privado-umbral">
+              <button type="button" class="segmented-btn" data-umbral="contrato"></button>
+              <button type="button" class="segmented-btn" data-umbral="completo"></button>
+            </div>
+            <p class="privado-resumen" id="privado-resumen"></p>
+            <ul class="privado-lista" id="privado-lista"></ul>
+          </div>
+        </div>
+      </section>
+
       <section class="form-section danger-zone">
         <h2>Zona de peligro</h2>
         <p class="label-hint">
@@ -954,6 +987,7 @@
   <script src="js/arreglo.js"></script>
   <script src="js/informe.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/privado.js"></script>
   <script src="js/export.js"></script>
   <script src="js/backup.js"></script>
   <script src="js/sync.js"></script>

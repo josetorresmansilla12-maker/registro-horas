@@ -1405,6 +1405,22 @@ body.rueda-abierta {
   font-style: italic;
 }
 
+/* Separador con el nombre del mes en listas largas (informe y Privado), con
+   el mismo estilo de línea pequeña de los días de descanso. */
+.data-table tbody tr.fila-mes td {
+  background: #faf8fc;
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-top: 1px dashed var(--color-border);
+  border-bottom: 1px dashed var(--color-border);
+  white-space: nowrap;
+}
+
 /* Día hábil ya pasado sin registro (posible olvido). */
 .data-table tbody tr.fila-sin-registro td {
   background: #fffaf0;
@@ -3100,4 +3116,127 @@ body.rueda-abierta {
     max-width: 96px;
     max-height: 44px;
   }
+}
+
+/* ---------- Configuración › Privado ---------- */
+
+.privado-section .list-header {
+  margin-bottom: 10px;
+}
+
+.privado-section h2 {
+  margin: 0;
+}
+
+.privado-bloqueado {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 340px;
+}
+
+.privado-bloqueado label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.privado-bloqueado input {
+  flex: 1;
+  min-width: 0;
+}
+
+.privado-pestanas {
+  margin-bottom: 12px;
+}
+
+.privado-pestanas .segmented-btn {
+  cursor: default;
+}
+
+#privado-umbral {
+  margin: 4px 0 10px;
+}
+
+#privado-umbral .segmented-btn {
+  font-size: 0.8rem;
+  padding: 7px 8px;
+}
+
+.privado-resumen {
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-primary-dark);
+}
+
+.privado-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.privado-mes {
+  background: #faf8fc;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+}
+
+.privado-dia {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.privado-dia.privado-sin-registro {
+  border: 1.5px dashed #e0b45a;
+  background: #fffaf0;
+}
+
+.privado-dia-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.privado-total {
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.privado-sin-registro .privado-total {
+  color: var(--color-warning);
+  font-size: 0.85rem;
+}
+
+.privado-detalle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.privado-dia-pie {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.privado-falta {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-warning);
 }

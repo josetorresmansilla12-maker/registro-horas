@@ -17,7 +17,8 @@ function rhActivateTab(tab) {
   if (tab === "licencias") renderLicencias();
   if (tab === "proyectos") renderProyectos();
   if (tab === "informe") renderInforme();
-  if (tab === "config") { renderConfigForm(); renderPapelera(); }
+  if (tab === "config") { renderConfigForm(); renderPapelera(); renderPrivado(); }
+  else rhPrivadoBloquear();
   if (tab === "marcaje") renderMarcajeTable();
 }
 

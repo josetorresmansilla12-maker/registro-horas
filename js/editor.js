@@ -121,19 +121,26 @@ function rhEditorLibreElegido() {
   return dl;
 }
 
-function rhAbrirEditorDia(fecha) {
+// `opciones` (opcional): { agregar: { entrada, salida } } deja lista una
+// jornada más con ese horario, y { actividad } la deja marcada (se usa al
+// agregar horas desde Privado).
+function rhAbrirEditorDia(fecha, opciones) {
+  opciones = opciones || {};
   var registro = rhGetRegistroByFecha(fecha);
   rhEditor.fecha = fecha;
   rhEditor.libreOriginal = rhDiaLibre(registro);
   rhEditor.jornadas = rhRegistroBloques(registro).map(function (b) {
     return { entrada: b.entrada || "", salida: b.salida || "" };
   });
-  if (!registro) rhEditor.jornadas = [{ entrada: "", salida: "" }];
-  rhEl("editor-titulo").textContent = (registro ? "Editar " : "Registrar ") + rhDayOfWeekLabel(fecha, false).toLowerCase() + " " +
-    rhFormatDateDisplay(fecha);
+  if (opciones.agregar) rhEditor.jornadas.push({ entrada: opciones.agregar.entrada || "", salida: opciones.agregar.salida || "" });
+  else if (!registro) rhEditor.jornadas = [{ entrada: "", salida: "" }];
+  rhEl("editor-titulo").textContent = (opciones.agregar ? "Agregar horas — " : registro ? "Editar " : "Registrar ") +
+    rhDayOfWeekLabel(fecha, false).toLowerCase() + " " + rhFormatDateDisplay(fecha);
   editorError.textContent = "";
   editorNota.value = (registro && registro.nota) || "";
-  rhEditor.actividades = rhCrearSelectorActividades(rhEl("editor-actividades"), rhRegistroActividades(registro), null);
+  var actividades = rhRegistroActividades(registro);
+  if (opciones.actividad) actividades = rhUnirActividades(actividades, [opciones.actividad]);
+  rhEditor.actividades = rhCrearSelectorActividades(rhEl("editor-actividades"), actividades, null);
   rhEditorRenderLibre(rhEditor.libreOriginal);
   rhEditorRenderJornadas();
   editorModal.classList.remove("hidden");

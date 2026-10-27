@@ -60,11 +60,13 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
     respaldo día por día (trabajé / contrato / libre / saldo).
   Selector de período (desde el inicio, mes actual, últimos 30/60/90 días, año o fechas a mano),
   botón ✏️ en cada día para corregirlo ahí mismo (el cambio se guarda en toda la app) y botón
-  Imprimir / PDF. Con "Tus datos en el informe" se agregan tu nombre, cargo, institución y logo
+  Imprimir / PDF. Si el período abarca más de un mes, los días se separan con el nombre de cada
+  mes. Con "Tus datos en el informe" se agregan tu nombre, cargo, institución y logo
   arriba del informe, y una línea de firma con la fecha de emisión al final.
 - **Funciones y Proyectos**: bitácora aparte de responsabilidades o proyectos asignados.
 - **Configuración**: días laborales, fecha de inicio del seguimiento, sincronización, lista de
-  actividades habituales y una Papelera con lo eliminado (recuperable por 30 días). La meta de
+  actividades habituales, una Papelera con lo eliminado (recuperable por 30 días) y un apartado
+  **🔒 Privado** con contraseña. La meta de
   cada mes se calcula sola: horas semanales ÷ días laborales × días hábiles reales del mes.
 - **Exportar a Excel**: reporte `.xlsx` por rango de fechas con total del período, hoja "Informe"
   lista para capturar y hoja opcional de proyectos.
