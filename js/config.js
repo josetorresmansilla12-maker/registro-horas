@@ -28,6 +28,7 @@ rhEl("config-ir-arreglo").addEventListener("click", function () {
 
 function renderConfigForm() {
   var config = rhLoadConfig();
+  rhEl("config-contrato-linea").textContent = "📄 Tu contrato: " + rhContratoTextoHoy(config);
   configFechaInicioBalanceInput.value = config.fechaInicioBalance || "";
 
   RH_DIAS_SEMANA.forEach(function (dia) {

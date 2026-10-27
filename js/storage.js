@@ -383,8 +383,8 @@ function rhWorkedMinutesInRange(start, end) {
 // (un día libre agendado para más adelante se descuenta cuando llegue). Hoy
 // se cuenta como esperado solo si ya tiene horas registradas, para no figurar
 // "debiendo" la jornada que está en curso.
-function rhBalancePeriodo(start, end) {
-  var config = rhLoadConfig();
+function rhBalancePeriodo(start, end, config) {
+  config = config || rhLoadConfig();
   var today = rhTodayISO();
   var inicio = rhBalanceStartDate();
   var desde = rhCompareISO(start, inicio) < 0 ? inicio : start;
@@ -415,8 +415,10 @@ function rhBalanceMes(mesIso) {
 
 // Balance acumulado: desde el inicio del seguimiento hasta hoy. Es igual a la
 // suma de los balances de cada mes.
-function rhCalcularBalance() {
-  return rhBalancePeriodo(rhBalanceStartDate(), rhTodayISO());
+// `config` (opcional) permite calcular con otra configuración sin guardarla,
+// por ejemplo para mostrar cómo quedaría el saldo con otro contrato.
+function rhCalcularBalance(config) {
+  return rhBalancePeriodo(rhBalanceStartDate(), rhTodayISO(), config);
 }
 
 // Cuenta los días hábiles (dentro de un rango) cubiertos por una licencia,

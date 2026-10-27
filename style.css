@@ -2540,6 +2540,7 @@ body.rueda-abierta {
   #informe-periodo-section,
   #informe-print-btn,
   .btn-editar-dia,
+  .no-imprimir,
   .modal-overlay,
   .rueda-overlay {
     display: none !important;
@@ -2924,6 +2925,38 @@ body.rueda-abierta {
   margin: 4px 0 0;
   font-weight: 700;
   color: var(--color-primary-dark);
+}
+
+/* Contrato actual con botón para cambiarlo. */
+.contrato-linea {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0 2px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-primary-dark);
+  text-align: center;
+}
+
+.contrato-linea-config {
+  justify-content: flex-start;
+  text-align: left;
+  margin: 0 0 10px;
+}
+
+.contrato-atajos {
+  margin-top: 6px;
+}
+
+.contrato-atajos .chip::before {
+  content: none;
+}
+
+#contrato-desde {
+  margin-top: 4px;
 }
 
 /* Membrete (logo, institución, nombre y cargo) y firma del informe. */

@@ -90,6 +90,16 @@ var RH_MIGRACIONES = [
     }
   },
   {
+    // Contrato de media jornada: 22 h semanales para todo el período.
+    id: "contrato-22h-2026-10",
+    aplicar: function () {
+      var config = rhLoadConfig();
+      if (Number(config.metaSemanal) === 22 && !(config.contratoCambios || []).length) return "";
+      rhSaveConfig(Object.assign({}, config, { metaSemanal: 22, contratoCambios: [] }));
+      return "Tu contrato quedó en 22 h semanales (media jornada) para todos los cálculos.";
+    }
+  },
+  {
     // Categorías de agosto y septiembre según la descripción de cada día.
     id: "etiquetas-ago-sep-2026",
     aplicar: function () {

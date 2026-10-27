@@ -32,6 +32,10 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
   mañana/tarde (respaldo) y un botón para copiar un resumen. Ahí se configuran las horas semanales
   del contrato (con cambios desde una fecha, sin alterar los meses anteriores) y el horario normal:
   mañana 09:00–13:00 y tarde 14:30–17:30 (día completo = 7 h).
+- **Contrato**: 22 h semanales (media jornada) = 4h 24m por día hábil. El botón **✏️ Cambiar
+  contrato** (en Arreglo de horas, en el informe "Horas que me deben" y en Configuración) cambia las
+  horas para todo el período o solo desde una fecha, muestra antes cómo queda tu saldo y recalcula
+  todo: estadísticas, arreglo de horas, informes y Excel.
 - **Estadísticas** (uso personal, no se informa); **cada cuadro tiene su propio selector de
   período**: mes con flechas, todo el historial o fechas a elección, independiente de los demás:
   - Cuota del mes en horas y porcentaje, con el cálculo explicado (días hábiles − feriados − no

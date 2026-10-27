@@ -267,6 +267,10 @@
         <span class="stat-label" id="arreglo-titulo">Saldo de horas</span>
         <div class="arreglo-total" id="arreglo-total"></div>
         <div class="arreglo-cuentas" id="arreglo-cuentas"></div>
+        <div class="contrato-linea">
+          <span id="arreglo-contrato-linea"></span>
+          <button type="button" class="btn btn-secondary btn-small btn-cambiar-contrato">✏️ Cambiar contrato</button>
+        </div>
         <p class="hero-explica" id="arreglo-explica"></p>
         <div class="form-actions arreglo-acciones">
           <button type="button" class="btn btn-primary" id="arreglo-copiar-btn">📋 Copiar resumen para enviar</button>
@@ -624,6 +628,7 @@
         <section class="form-section">
           <h2>Resumen</h2>
           <p class="label-hint" id="informe-deben-contrato"></p>
+          <button type="button" class="btn btn-secondary btn-small btn-cambiar-contrato no-imprimir">✏️ Cambiar horas del contrato</button>
           <div class="informe-arreglo-cifras" id="informe-deben-cifras"></div>
           <p class="informe-deben-equiv" id="informe-deben-equiv"></p>
         </section>
@@ -674,7 +679,11 @@
     <section id="tab-config" class="tab-panel hidden">
       <section class="form-section">
         <h2>Contrato y jornadas</h2>
-        <p class="config-explica">Las horas semanales de tu contrato y los horarios de tus jornadas (mañana y tarde) se configuran en la pestaña <strong>Arreglo de horas</strong>, junto al cálculo de las horas que te deben.</p>
+        <div class="contrato-linea contrato-linea-config">
+          <span id="config-contrato-linea"></span>
+          <button type="button" class="btn btn-primary btn-small btn-cambiar-contrato">✏️ Cambiar contrato</button>
+        </div>
+        <p class="config-explica">Los horarios de tus jornadas (mañana y tarde) se configuran en la pestaña <strong>Arreglo de horas</strong>, junto al cálculo de las horas que te deben.</p>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary btn-small" id="config-ir-arreglo">Ir a Arreglo de horas</button>
         </div>
@@ -846,6 +855,38 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL: HORAS DEL CONTRATO ===================== -->
+  <div class="modal-overlay hidden" id="contrato-modal">
+    <div class="modal modal-largo" role="dialog" aria-modal="true" aria-labelledby="contrato-titulo">
+      <h2 id="contrato-titulo">📄 Horas de tu contrato</h2>
+      <p class="label-hint" id="contrato-actual"></p>
+      <div class="field">
+        <label for="contrato-horas">Horas semanales</label>
+        <input type="number" id="contrato-horas" min="1" max="80" step="0.5" inputmode="decimal" />
+        <div class="contrato-atajos">
+          <button type="button" class="chip" data-horas="22">Media jornada · 22 h</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label">¿Desde cuándo rige?</span>
+        <label class="switch-option">
+          <input type="radio" name="contrato-modo" value="todo" checked />
+          Para todo (se recalculan todos los meses)
+        </label>
+        <label class="switch-option">
+          <input type="radio" name="contrato-modo" value="desde" />
+          Solo desde una fecha (los meses anteriores no cambian)
+        </label>
+        <input type="date" class="hidden" id="contrato-desde" aria-label="Desde qué fecha rige" />
+      </div>
+      <div class="libre-resumen" id="contrato-previa" aria-live="polite"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="contrato-guardar">Guardar</button>
+        <button type="button" class="btn btn-secondary" id="contrato-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== MODAL: EDITAR UN DÍA (desde el informe) ===================== -->
   <div class="modal-overlay hidden" id="editor-modal">
     <div class="modal modal-largo" role="dialog" aria-modal="true" aria-labelledby="editor-titulo">
@@ -903,6 +944,7 @@
   <script src="js/resumen.js"></script>
   <script src="js/tabs.js"></script>
   <script src="js/diaslibres.js"></script>
+  <script src="js/contrato.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/marcaje.js"></script>
   <script src="js/estadisticas.js"></script>

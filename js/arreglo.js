@@ -123,9 +123,10 @@ function renderArregloCalculo() {
   rhArregloCuenta(cuentas, favor ? "Saldo a tu favor" : contra ? "Saldo en contra" : "Saldo", favor || contra ? rhMinutesToHM(abs) : "0h 00m",
     "arreglo-cuenta-total " + (favor ? "favor" : contra ? "contra" : ""));
 
+  rhEl("arreglo-contrato-linea").textContent = "📄 Contrato: " + rhContratoTextoHoy(config);
   rhEl("arreglo-explica").textContent = "Del " + rhFormatDateDisplay(b.desde) + " al " + rhFormatDateDisplay(b.hasta) +
-    ". Contrato: " + rhArregloTextoContrato(config) + " (" + rhMinutesToHM(rhMetaDiariaMinutos(config, b.hasta)) +
-    " por día hábil). Los fines de semana, feriados, días sin convocatoria, licencias y días libres no cuentan como días a trabajar.";
+    ((config.contratoCambios || []).length ? " (contrato: " + rhArregloTextoContrato(config) + ")" : "") +
+    ". Los fines de semana, feriados, días sin convocatoria, licencias y días libres no cuentan como días a trabajar.";
 
   // Detalle por mes.
   var tbody = rhEl("arreglo-meses-body");
