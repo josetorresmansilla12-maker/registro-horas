@@ -15,6 +15,10 @@
   --color-warning-bg: #fbeecb;
   --color-success: #1f7a5c;
   --color-success-bg: #e1f3ec;
+  /* Días libres pagados con horas a favor. */
+  --color-libre: #1d6a80;
+  --color-libre-bg: #e2f1f6;
+  --color-libre-borde: #b6dbe6;
   --radius: 10px;
   --shadow: 0 2px 8px rgba(45, 25, 65, 0.08);
 }
@@ -1378,6 +1382,28 @@ body.rueda-abierta {
 .status-pill.est-futuro,
 .status-pill.est-fuera,
 .status-pill.est-sin_contrato { background: var(--color-tint); color: var(--color-text-muted); }
+.status-pill.est-dia_libre { background: var(--color-libre-bg); color: var(--color-libre); }
+
+/* Días libres (pagados con horas a favor) y días de descanso. */
+.data-table tbody tr.fila-dia-libre {
+  background: var(--color-libre-bg);
+}
+
+.data-table tbody tr.fila-dia-libre td {
+  color: var(--color-libre);
+}
+
+.data-table tbody tr.fila-descanso td {
+  background: #faf8fc;
+  color: var(--color-text-muted);
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: 0.85rem;
+}
+
+.celda-descanso {
+  font-style: italic;
+}
 
 /* ---------- Estadísticas: selector de mes de cada cuadro ---------- */
 
@@ -1740,6 +1766,8 @@ body.rueda-abierta {
 .cal-dia.est-sin_contrato,
 .cal-dia.est-fuera { background: var(--color-tint); color: var(--color-text-muted); }
 .cal-dia.est-futuro { color: var(--color-text-muted); }
+.cal-dia.est-dia_libre { background: var(--color-libre-bg); border-color: var(--color-libre-borde); }
+.cal-dia.est-dia_libre .cal-info { color: var(--color-libre); }
 
 .cal-dia.es-hoy {
   box-shadow: inset 0 0 0 2px var(--color-primary);
@@ -1827,6 +1855,7 @@ body.rueda-abierta {
 .cal-muestra.est-licencia { background: var(--color-warning-bg); border-color: #ecd29a; }
 .cal-muestra.est-sin_registro { border-style: dashed; border-color: #e0b45a; }
 .cal-muestra.est-sin_contrato { background: var(--color-tint); }
+.cal-muestra.est-dia_libre { background: var(--color-libre-bg); border-color: var(--color-libre-borde); }
 
 /* ---------- Semanas ---------- */
 
@@ -2029,6 +2058,18 @@ body.rueda-abierta {
   #marcaje-table tbody td:nth-child(5) { grid-area: nota; max-width: none; font-size: 0.84rem; }
   #marcaje-table tbody td:nth-child(6) { grid-area: acciones; text-align: left; margin-top: 4px; }
   #marcaje-table tbody tr.dia-rojo td:nth-child(2) { color: var(--color-danger-dark); font-weight: 700; }
+  #marcaje-table tbody tr.fila-descanso {
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas: "fecha dia jornadas";
+    padding: 6px 12px;
+    margin-bottom: 6px;
+    background: #faf8fc;
+    border-style: dashed;
+  }
+  #marcaje-table tbody tr.fila-descanso td { background: none; padding: 0; }
+  #marcaje-table tbody tr.fila-descanso td:nth-child(3) { text-align: right; }
+  #marcaje-table tbody tr.fila-descanso td:nth-child(n+4) { display: none; }
+  #marcaje-table tbody tr.fila-dia-libre { border-color: var(--color-libre-borde); }
   #informe-table .jornadas-cell {
     min-width: 0;
   }
@@ -2477,8 +2518,10 @@ body.rueda-abierta {
   .app-alerts,
   .app-toasts,
   #informe-periodo-section,
-  #informe-opciones-section,
-  #informe-print-btn {
+  #informe-print-btn,
+  .btn-editar-dia,
+  .modal-overlay,
+  .rueda-overlay {
     display: none !important;
   }
   .tab-panel.hidden {
@@ -2500,5 +2543,385 @@ body.rueda-abierta {
     border-top: 4px solid var(--informe-morado);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+}
+
+/* ---------- Ocupar horas libres ---------- */
+
+.btn-libre {
+  background: var(--color-libre-bg);
+  color: var(--color-libre);
+}
+
+.banner-libre {
+  background: var(--color-libre-bg);
+  color: var(--color-libre);
+  border: 1px solid var(--color-libre-borde);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 12px;
+  font-weight: 600;
+}
+
+.banner-acciones {
+  display: inline-flex;
+  gap: 14px;
+}
+
+.banner-libre .btn-link {
+  color: var(--color-libre);
+  font-size: 0.85rem;
+}
+
+.modal-largo {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.libre-saldo {
+  background: var(--color-tint);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: var(--color-primary-dark);
+}
+
+.libre-opciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.libre-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.libre-opcion strong {
+  font-size: 0.95rem;
+}
+
+.libre-opcion span {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+.libre-opcion.activa {
+  border-color: var(--color-libre);
+  background: var(--color-libre-bg);
+  box-shadow: 0 0 0 2px rgba(29, 106, 128, 0.15);
+}
+
+.libre-opcion.activa strong {
+  color: var(--color-libre);
+}
+
+.libre-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.88rem;
+}
+
+.libre-resumen p {
+  margin: 0;
+}
+
+.libre-ok {
+  color: var(--color-success);
+  font-weight: 800;
+}
+
+.libre-alerta {
+  color: var(--color-danger-dark);
+  font-weight: 800;
+}
+
+#editor-libre {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font: inherit;
+  background: #faf8fc;
+  color: var(--color-text);
+  width: 100%;
+}
+
+#editor-libre-horas {
+  margin-top: 6px;
+}
+
+/* ---------- Arreglo de horas: resumen tipo boleta, planificador y lista ---------- */
+
+.arreglo-cuentas {
+  max-width: 420px;
+  margin: 8px auto 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.arreglo-cuenta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.arreglo-cuenta strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.arreglo-cuenta-total {
+  border-top: 1.5px solid var(--color-border);
+  padding-top: 6px;
+  margin-top: 2px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.arreglo-cuenta-total strong { font-size: 1.05rem; color: var(--color-primary-dark); }
+.arreglo-cuenta-total.favor strong { color: var(--color-success); }
+.arreglo-cuenta-total.contra strong { color: var(--color-danger-dark); }
+
+.plan-desde {
+  max-width: 220px;
+  margin-bottom: 10px;
+}
+
+.plan-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-dia {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 190px) 1fr;
+  align-items: center;
+  gap: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.plan-dia select {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.88rem;
+  background: #faf8fc;
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.plan-fecha {
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.plan-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--color-libre-bg);
+  color: var(--color-libre);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 6px;
+}
+
+.plan-estado {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.plan-dia.plan-ok {
+  border-color: #b9e0cf;
+  background: #f3faf7;
+}
+
+.plan-dia.plan-ok .plan-estado { color: var(--color-success); font-weight: 700; }
+
+.plan-dia.plan-no {
+  border-color: #f0c3bd;
+  background: #fdf5f4;
+}
+
+.plan-dia.plan-no .plan-estado { color: var(--color-danger-dark); font-weight: 700; }
+
+.plan-total {
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.plan-total.plan-ok { color: var(--color-success); }
+.plan-total.plan-no { color: var(--color-danger-dark); }
+
+.libres-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.libres-lista li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  border: 1px solid var(--color-libre-borde);
+  background: var(--color-libre-bg);
+  border-radius: 10px;
+  padding: 8px 10px 8px 12px;
+}
+
+.libres-lista li.libres-vacio {
+  border: 1px dashed var(--color-border);
+  background: none;
+}
+
+.libres-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.88rem;
+  color: var(--color-libre);
+}
+
+.libres-info strong {
+  color: var(--color-text);
+}
+
+@media (max-width: 640px) {
+  .plan-dia {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .plan-estado {
+    grid-column: 1 / -1;
+  }
+  .libre-opciones {
+    gap: 6px;
+  }
+  .libre-opcion {
+    padding: 8px 10px;
+  }
+}
+
+/* ---------- Informe: tipo, encabezado, editar un día y horas que me deben ---------- */
+
+.informe-tipo {
+  margin-bottom: 16px;
+}
+
+#informe-periodo-section h2 {
+  margin-top: 0;
+}
+
+#informe-opcion-descripciones {
+  margin-top: 12px;
+  align-items: flex-start;
+}
+
+.informe-editar-hint {
+  margin: 10px 0 0;
+}
+
+.informe-encabezado .list-header {
+  margin-bottom: 0;
+  align-items: flex-start;
+}
+
+.informe-encabezado h2 {
+  margin: 0;
+}
+
+.informe-doc-sub {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.celda-total-editar {
+  white-space: nowrap;
+}
+
+.btn-editar-dia {
+  border: none;
+  background: var(--color-tint);
+  border-radius: 6px;
+  padding: 2px 5px;
+  margin-left: 6px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.btn-editar-dia:hover {
+  background: var(--color-accent);
+}
+
+.tabla-deben td,
+.tabla-deben th {
+  white-space: nowrap;
+}
+
+.tabla-deben tr.fila-favor .celda-saldo { color: var(--color-success); font-weight: 800; }
+.tabla-deben tr.fila-contra .celda-saldo { color: var(--color-danger-dark); font-weight: 800; }
+
+.informe-deben-equiv {
+  margin: 4px 0 0;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+@media (max-width: 640px) {
+  .data-table.tabla-deben tbody td,
+  .data-table.tabla-deben thead th,
+  .data-table.tabla-deben tfoot th {
+    padding: 7px 4px;
+    font-size: 0.78rem;
+    letter-spacing: 0;
+  }
+  .data-table.tabla-deben thead th {
+    font-size: 0.66rem;
+  }
+  .tabla-deben td:last-child,
+  .tabla-deben th:last-child {
+    white-space: normal;
+  }
+  .informe-encabezado .list-header {
+    flex-direction: column;
   }
 }

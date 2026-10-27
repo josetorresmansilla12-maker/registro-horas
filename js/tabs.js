@@ -25,3 +25,12 @@ rhTabIds.forEach(function (id) {
   var btn = rhEl("tab-" + id + "-btn");
   if (btn) btn.addEventListener("click", function () { rhActivateTab(id); });
 });
+
+// Vuelve a dibujar la pestaña abierta y el historial después de un cambio en
+// los datos (día libre, edición desde el informe, sincronización, etc.).
+function rhRefrescarVistas() {
+  var activa = document.querySelector(".tab-btn.active");
+  renderMarcajeTable();
+  rhMarcajeMostrarLibre();
+  if (activa) rhActivateTab(activa.getAttribute("data-tab"));
+}

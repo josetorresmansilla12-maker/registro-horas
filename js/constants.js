@@ -45,9 +45,8 @@ var RH_ACTIVIDADES_ALIAS = {
 
 // ---------- Configuración por defecto ----------
 //
-// Refleja el contrato inicial del usuario: 09:00 a 13:00, un solo bloque,
-// jornada de lunes a viernes. Todo esto es editable desde Configuración
-// para cuando el contrato cambie (jornada completa, bloque de tarde, etc).
+// Horario normal: mañana de 09:00 a 13:00 y tarde de 14:30 a 17:30, de lunes a
+// viernes. Todo esto es editable en "Arreglo de horas" para cuando cambie.
 //
 // La meta de cada mes NO es un número fijo: se calcula día a día (horas
 // semanales ÷ días laborales = horas por día hábil) sobre los días hábiles
@@ -62,9 +61,9 @@ var RH_CONFIG_DEFAULT = {
   // autocompletar el marcaje y para traducir horas a jornadas al cobrarlas.
   horarioBase: {
     bloque1: { entrada: "09:00", salida: "13:00" },
-    bloque2: { entrada: "14:30", salida: "18:00" }
+    bloque2: { entrada: "14:30", salida: "17:30" }
   },
-  bloque2Activo: false,
+  bloque2Activo: true,
   diasLaborales: [1, 2, 3, 4, 5], // 0=domingo ... 6=sábado
   fechaInicioBalance: null, // se autocompleta con el primer registro
   // Qué se considera "una jornada" al expresar horas a cobrar (ver arreglo.js).
@@ -109,6 +108,16 @@ var RH_FERIADOS_CHILE = {
   "2027-12-08": "Inmaculada Concepción",
   "2027-12-25": "Navidad"
 };
+
+// Partes del día que se pueden pagar con horas a favor ("Ocupar horas
+// libres"). Las horas de mañana, tarde y día completo salen del horario
+// normal; "otra" es una cantidad escrita a mano.
+var RH_JORNADAS_LIBRE = [
+  { id: "manana", label: "Mañana libre" },
+  { id: "tarde", label: "Tarde libre" },
+  { id: "completa", label: "Día libre" },
+  { id: "otra", label: "Horas libres" }
+];
 
 var RH_TIPOS_LICENCIA = [
   { id: "medica", label: "Licencia médica" },

@@ -150,9 +150,35 @@ function rhRegistroEstadoLabel(registro) {
   return "";
 }
 
-// Un día con estado especial no cuenta para la meta ni resta al balance.
+// Horas libres ocupadas en un día ({ jornada, minutos, motivo }), o null.
+// Los minutos quedan fijos al marcarlo: si después cambia el horario, lo ya
+// ocupado no se recalcula.
+function rhDiaLibre(registro) {
+  var dl = registro && registro.diaLibre;
+  return dl && Number(dl.minutos) > 0 ? dl : null;
+}
+
+function rhDiaLibreMinutos(registro) {
+  var dl = rhDiaLibre(registro);
+  return dl ? Number(dl.minutos) : 0;
+}
+
+// "Día libre", "Mañana libre", "Tarde libre" u "Horas libres".
+function rhDiaLibreNombre(dl) {
+  var t = RH_JORNADAS_LIBRE.find(function (j) { return j.id === (dl && dl.jornada); });
+  return t ? t.label : "Horas libres";
+}
+
+// "Día libre (7h 00m)".
+function rhDiaLibreTexto(dl) {
+  return rhDiaLibreNombre(dl) + " (" + rhMinutesToHM(dl.minutos) + ")";
+}
+
+// Un día con estado especial no cuenta para la meta ni resta al balance. Un
+// día libre tampoco cuenta como día a trabajar: en su lugar se descuentan del
+// saldo las horas libres ocupadas (ver rhBalancePeriodo).
 function rhRegistroExcluyeMeta(registro) {
-  return !!rhRegistroEstadoLabel(registro);
+  return !!rhRegistroEstadoLabel(registro) || !!rhDiaLibre(registro);
 }
 
 // Lista de actividades sin vacíos ni repetidos, con los nombres antiguos
@@ -212,15 +238,18 @@ function rhFormatBloque(block) {
 
 // Texto de todas las jornadas de un día, pensado para tablas e informes:
 // "No convocado" si la oficina pidió no asistir, la lista de horarios si hay
-// jornadas, o "—" si el día no tiene marcaje.
+// jornadas (más las horas libres ocupadas, si las hay), o "—" si el día no
+// tiene marcaje.
 function rhFormatJornadasRegistro(registro) {
   var estadoLabel = rhRegistroEstadoLabel(registro);
   if (estadoLabel) return estadoLabel;
-  var bloques = rhRegistroBloques(registro).filter(function (b) {
+  var partes = rhRegistroBloques(registro).filter(function (b) {
     return b && b.entrada && b.salida;
-  });
-  if (bloques.length === 0) return "—";
-  return bloques.map(rhFormatBloque).join(" · ");
+  }).map(rhFormatBloque);
+  var dl = rhDiaLibre(registro);
+  if (dl) partes.push(rhDiaLibreTexto(dl));
+  if (partes.length === 0) return "—";
+  return partes.join(" · ");
 }
 
 function rhMinutesToHM(minutes) {

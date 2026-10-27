@@ -143,9 +143,7 @@ function rhSyncAplicarEstado(estado) {
 }
 
 function rhSyncRefrescarVista() {
-  var activa = document.querySelector(".tab-btn.active");
-  renderMarcajeTable();
-  if (activa) rhActivateTab(activa.getAttribute("data-tab"));
+  rhRefrescarVistas();
 }
 
 // Combina dos estados sin perder nada: jornadas por fecha, licencias y
@@ -257,10 +255,12 @@ function rhSyncEscuchar() {
     try { msg = JSON.parse(e.data); } catch (err) { return; }
     if (!msg || msg.path !== "/") {
       // Cambio parcial (no lo hace esta app): se relee completo.
-      rhSyncLeerRemoto(rhSync.codigo).then(rhSyncRecibir).catch(function () {});
+      rhSyncLeerRemoto(rhSync.codigo).then(rhSyncRecibir).then(rhAplicarMigraciones).catch(function () {});
       return;
     }
     rhSyncRecibir(msg.data);
+    // Los ajustes únicos se aplican sobre los datos más nuevos de la nube.
+    rhAplicarMigraciones();
   });
 
   fuente.addEventListener("patch", function () {

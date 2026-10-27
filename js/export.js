@@ -99,6 +99,8 @@ function rhBuildInformeRows(start, end) {
     if (estadoLabel) {
       nota = nota ? estadoLabel + " · " + nota : estadoLabel;
     }
+    var libre = rhDiaLibre(registro);
+    if (libre) nota = nota ? rhDiaLibreTexto(libre) + " · " + nota : rhDiaLibreTexto(libre);
     rows.push([
       rhDayOfWeekLabel(iso, true),
       rhFormatDateDisplay(iso),
@@ -113,33 +115,42 @@ function rhBuildInformeRows(start, end) {
   return rows;
 }
 
-// Hoja "Arreglo de horas": saldo según el contrato y detalle por mes.
+// Hoja "Arreglo de horas": saldo según el contrato, horas libres ocupadas y
+// detalle por mes.
 function rhBuildArregloRows(start, end) {
   var config = rhLoadConfig();
   var b = rhBalancePeriodo(start, end);
-  var unidad = rhArregloUnidadElegida(config, b.hasta);
-  var dias = config.diasLaborales.length || 5;
+  var norma = rhJornadasNorma(config);
   var abs = Math.abs(b.balanceMin);
   var rows = [
     ["Arreglo de horas"],
     ["Período", "Del " + rhFormatDateDisplay(b.desde) + " al " + rhFormatDateDisplay(b.hasta)],
     ["Contrato", rhArregloTextoContrato(config)],
+    ["Horario", norma.manana.horario + " y " + norma.tarde.horario],
     ["Horas trabajadas", rhMinutesToDecimal(b.trabajadoMin), rhMinutesToHM(b.trabajadoMin)],
     ["Horas según contrato", rhMinutesToDecimal(b.esperadoMin), rhMinutesToHM(b.esperadoMin)],
+    ["Horas libres ocupadas (" + b.diasLibres + " días)", rhMinutesToDecimal(b.libresMin), rhMinutesToHM(b.libresMin)],
     [b.balanceMin >= 0 ? "Saldo a mi favor" : "Saldo en contra", rhMinutesToDecimal(abs), rhMinutesToHM(abs)],
-    ["En " + unidad.plural + " (" + rhMinutesToHM(unidad.minutos) + ")", unidad.minutos > 0 ? Math.round((abs / unidad.minutos) * 10) / 10 : ""],
-    ["En semanas de " + rhMinutesToHM(unidad.minutos * dias) + " (lunes a viernes)", unidad.minutos > 0 ? Math.round((abs / (unidad.minutos * dias)) * 10) / 10 : ""],
+    ["Equivale a", rhArregloEnJornadas(abs, norma.completa, "día completo", "días completos")],
     [],
-    ["Mes", "Horas trabajadas", "Horas según contrato", "Saldo (horas)", "Saldo"]
+    ["Mes", "Horas trabajadas", "Horas según contrato", "Horas libres", "Saldo (horas)", "Saldo"]
   ];
   rhMesesEnRango(start, end).forEach(function (mes) {
     var r = rhMonthRange(mes);
     var bm = rhBalancePeriodo(rhCompareISO(r.start, start) < 0 ? start : r.start, rhCompareISO(r.end, end) > 0 ? end : r.end);
-    if (bm.trabajadoMin === 0 && bm.esperadoMin === 0) return;
+    if (bm.trabajadoMin === 0 && bm.esperadoMin === 0 && bm.libresMin === 0) return;
     rows.push([rhNombreMes(mes, true), rhMinutesToDecimal(bm.trabajadoMin), rhMinutesToDecimal(bm.esperadoMin),
-      rhMinutesToDecimal(bm.balanceMin), rhConSigno(bm.balanceMin)]);
+      rhMinutesToDecimal(bm.libresMin), rhMinutesToDecimal(bm.balanceMin), rhConSigno(bm.balanceMin)]);
   });
-  rows.push([], ["No se cuentan como días a trabajar los feriados, los días sin convocatoria ni las licencias."]);
+  var libres = rhDiasLibresLista(start, end).filter(function (r) { return rhCompareISO(r.fecha, rhTodayISO()) <= 0; });
+  if (libres.length) {
+    rows.push([], ["Horas libres ocupadas"], ["Fecha", "Parte del día", "Horas", "Motivo"]);
+    libres.forEach(function (r) {
+      var dl = rhDiaLibre(r);
+      rows.push([rhFormatDateDisplay(r.fecha), rhDiaLibreNombre(dl), rhMinutesToDecimal(dl.minutos), dl.motivo || ""]);
+    });
+  }
+  rows.push([], ["No se cuentan como días a trabajar los feriados, los días sin convocatoria, las licencias ni los días libres."]);
   return rows;
 }
 
@@ -183,7 +194,7 @@ exportConfirmBtn.addEventListener("click", function () {
 
   if (exportIncluirArregloInput.checked) {
     var wsArreglo = XLSX.utils.aoa_to_sheet(rhBuildArregloRows(start, end));
-    wsArreglo["!cols"] = [{ wch: 38 }, { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 12 }];
+    wsArreglo["!cols"] = [{ wch: 38 }, { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, wsArreglo, "Arreglo de horas");
   }
 

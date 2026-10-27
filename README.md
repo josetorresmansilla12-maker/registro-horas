@@ -11,19 +11,26 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
   actividades del día; varias jornadas por día; **actividades rápidas** (botones de selección
   múltiple: Talleres vocacionales Kuder, Aplicaciones de test vocacionales Kuder, Oficina, Home
   office, Ensayos PAES y "Otro" para escribir una); nota/bitácora; historial
-  mensual (en el celular se ve como tarjetas) con fines de semana y feriados en rojo y "no
-  convocado" en ámbar. Si guardas una jornada en una fecha que ya tenía registro, se **suma** a lo
+  mensual (en el celular se ve como tarjetas) con fines de semana y feriados en rojo, "no
+  convocado" en ámbar, días libres en celeste y los sábados y domingos como **Descanso**, para
+  seguir cada semana. Si guardas una jornada en una fecha que ya tenía registro, se **suma** a lo
   existente (con aviso) en vez de reemplazarlo. Al editar un día y cambiarle la fecha, la jornada
   completa (horas, nota y actividades) se mueve a la nueva fecha.
+- **Ocupar horas libres** (botón 🌴 en Marcaje y en Arreglo de horas): para los días que no
+  trabajas y pagas con las horas que te deben (por ejemplo, si te enfermas y te piden no presentar
+  licencia). Eliges la mañana, la tarde, el día completo u otra cantidad de horas, para un día o un
+  rango de fechas; ese día no cuenta como día a trabajar y esas horas se descuentan del saldo.
 - **Licencias y Feriados**: licencia médica, permiso especial, feriado, *No convocado* u otro, cada
   uno con rango de fechas; botón para agregar de una vez los **feriados nacionales de Chile** del
   año que caen en días hábiles.
-- **Arreglo de horas**: cuántas horas te deben (o debes) según tu contrato, en horas, jornadas y
-  semanas (lunes a viernes), para el período que elijas (todo, un mes o fechas a elección). Incluye
-  detalle por mes, horas trabajadas en jornada de mañana/tarde (respaldo), otras equivalencias y un
-  botón para copiar un resumen y enviarlo. Ahí se configuran las horas semanales del contrato
-  (con cambios desde una fecha, sin alterar los meses anteriores), los horarios de las jornadas de
-  mañana y tarde, y qué cuenta como "una jornada" al cobrar.
+- **Arreglo de horas**: cuántas horas te deben (o debes) según tu contrato para el período que
+  elijas (todo, un mes o fechas a elección), como una boleta simple: trabajadas − contrato − horas
+  libres ocupadas = saldo. Muestra para cuántos días completos, mañanas o tardes libres te alcanza,
+  un **planificador** para elegir qué días ocupar (en verde los que alcanzan, en rojo los que no) y
+  agendarlos, la lista de horas libres ocupadas, el detalle por mes, las horas trabajadas en la
+  mañana/tarde (respaldo) y un botón para copiar un resumen. Ahí se configuran las horas semanales
+  del contrato (con cambios desde una fecha, sin alterar los meses anteriores) y el horario normal:
+  mañana 09:00–13:00 y tarde 14:30–17:30 (día completo = 7 h).
 - **Estadísticas** (uso personal, no se informa); **cada cuadro tiene su propio selector de
   período**: mes con flechas, todo el historial o fechas a elección, independiente de los demás:
   - Cuota del mes en horas y porcentaje, con el cálculo explicado (días hábiles − feriados − no
@@ -39,12 +46,16 @@ como PWA). Opcionalmente se sincroniza entre dispositivos con Firebase (ver abaj
     más de una y de dos jornadas, actividad más realizada, semana con más horas, comparación con
     el mes anterior y horas por día de la semana; y **actividades frecuentes** (mes o todo).
 - **Informe**: pestaña con identidad visual morada (Universidad de Magallanes) pensada para
-  compartir con la jefatura — rango por defecto el mes actual completo, selector de período
-  (manual, mes actual, últimos 30/60/90 días o año completo), resumen de meta vs. horas trabajadas
-  del período y detalle día por día con horarios en formato de 24 horas, actividades y la descripción
-  de cada día resumida y con la ortografía corregida (la nota original no cambia; en Marcaje se ve
-  una vista previa y se puede escribir otro texto solo para el informe). Casillas para incluir o no
-  las descripciones y el **Arreglo de horas** (lo que se debe en el período). Botón Imprimir / PDF.
+  compartir con la jefatura, con dos tipos:
+  - **Horas trabajadas**: resumen de meta vs. horas trabajadas y detalle día por día con horarios en
+    formato de 24 horas, actividades y la descripción de cada día resumida y con la ortografía
+    corregida (la nota original no cambia; en Marcaje se ve una vista previa y se puede escribir
+    otro texto solo para el informe).
+  - **Horas que me deben**: saldo según el contrato, detalle por mes, horas libres ocupadas y el
+    respaldo día por día (trabajé / contrato / libre / saldo).
+  Selector de período (desde el inicio, mes actual, últimos 30/60/90 días, año o fechas a mano),
+  botón ✏️ en cada día para corregirlo ahí mismo (el cambio se guarda en toda la app) y botón
+  Imprimir / PDF.
 - **Funciones y Proyectos**: bitácora aparte de responsabilidades o proyectos asignados.
 - **Configuración**: días laborales, fecha de inicio del seguimiento, sincronización, lista de
   actividades habituales y una Papelera con lo eliminado (recuperable por 30 días). La meta de

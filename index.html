@@ -74,7 +74,18 @@
             <div class="banner banner-info" id="marcaje-existente-banner-text"></div>
           </div>
 
+          <div class="field hidden" id="marcaje-libre-banner">
+            <div class="banner banner-libre">
+              <span id="marcaje-libre-banner-text"></span>
+              <span class="banner-acciones">
+                <button type="button" class="btn-link" id="marcaje-libre-cambiar">Cambiar</button>
+                <button type="button" class="btn-link" id="marcaje-libre-quitar">Quitar</button>
+              </span>
+            </div>
+          </div>
+
           <div class="field-inline marcaje-quick-actions">
+            <button type="button" class="btn btn-secondary btn-small btn-libre" id="marcaje-ocupar-libre-btn">🌴 Ocupar horas libres</button>
             <button type="button" class="btn btn-secondary btn-small" id="marcaje-marcar-feriado-btn">📅 Marcar como feriado</button>
             <button type="button" class="btn btn-secondary btn-small" id="marcaje-no-convocado-btn">🚫 No me convocaron</button>
             <button type="button" class="btn btn-secondary btn-small" id="marcaje-no-contratado-btn">🪪 Aún no contratado</button>
@@ -255,7 +266,7 @@
         <div class="periodo" id="periodo-arreglo"></div>
         <span class="stat-label" id="arreglo-titulo">Saldo de horas</span>
         <div class="arreglo-total" id="arreglo-total"></div>
-        <div class="arreglo-equivalencias" id="arreglo-equivalencias"></div>
+        <div class="arreglo-cuentas" id="arreglo-cuentas"></div>
         <p class="hero-explica" id="arreglo-explica"></p>
         <div class="form-actions arreglo-acciones">
           <button type="button" class="btn btn-primary" id="arreglo-copiar-btn">📋 Copiar resumen para enviar</button>
@@ -264,9 +275,33 @@
       </section>
 
       <section class="form-section">
-        <h2>¿En qué horario trabajaste?</h2>
-        <p class="label-hint">Horas que caen dentro de cada jornada configurada: sirve para respaldar las tardes trabajadas.</p>
-        <div class="barras" id="arreglo-franjas"></div>
+        <h2>¿Para cuántos días libres te alcanza?</h2>
+        <p class="label-hint" id="arreglo-alcanza-hint"></p>
+        <div class="arreglo-equivalencias" id="arreglo-equivalencias"></div>
+      </section>
+
+      <section class="form-section">
+        <h2>Planificar días libres</h2>
+        <p class="label-hint">Elige qué días te gustaría ocupar y te digo cuáles te alcanzan con tus horas a favor. Luego puedes agendarlos.</p>
+        <div class="field plan-desde">
+          <label for="plan-desde">Mostrar días hábiles desde</label>
+          <input type="date" id="plan-desde" />
+        </div>
+        <div class="plan-lista" id="plan-lista"></div>
+        <p class="plan-total" id="plan-total"></p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary btn-small" id="plan-mas">Ver más días</button>
+          <button type="button" class="btn btn-primary" id="plan-agendar">Agendar días elegidos</button>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="list-header">
+          <h2>Horas libres ocupadas</h2>
+          <button type="button" class="btn btn-secondary btn-small btn-libre" id="arreglo-ocupar-btn">🌴 Ocupar horas libres</button>
+        </div>
+        <p class="label-hint">Días que pagaste (o vas a pagar) con tus horas a favor. Se descuentan del saldo cuando llega el día.</p>
+        <ul class="libres-lista" id="arreglo-libres-lista"></ul>
       </section>
 
       <section class="form-section">
@@ -274,7 +309,7 @@
         <div class="table-wrap">
           <table class="data-table tabla-arreglo">
             <thead>
-              <tr><th>Mes</th><th>Trabajé</th><th>Contrato</th><th>Saldo</th><th id="arreglo-col-jornadas">Jornadas</th></tr>
+              <tr><th>Mes</th><th>Trabajé</th><th>Contrato</th><th>Libres</th><th>Saldo</th></tr>
             </thead>
             <tbody id="arreglo-meses-body"></tbody>
           </table>
@@ -282,14 +317,9 @@
       </section>
 
       <section class="form-section">
-        <h2>Otras equivalencias</h2>
-        <p class="label-hint">El mismo saldo expresado en cada tipo de jornada (las semanas son de lunes a viernes).</p>
-        <div class="table-wrap">
-          <table class="data-table tabla-arreglo">
-            <thead><tr><th>Si una jornada es…</th><th>Jornadas</th><th>Semanas</th></tr></thead>
-            <tbody id="arreglo-equiv-body"></tbody>
-          </table>
-        </div>
+        <h2>¿En qué horario trabajaste?</h2>
+        <p class="label-hint">Horas que caen dentro de cada jornada de tu horario: sirve para respaldar las tardes trabajadas.</p>
+        <div class="barras" id="arreglo-franjas"></div>
       </section>
 
       <section class="form-section">
@@ -317,7 +347,7 @@
           </details>
           <p class="config-explica" id="arreglo-contrato-explica"></p>
 
-          <h3 class="subseccion">Jornadas</h3>
+          <h3 class="subseccion">Horario normal</h3>
           <div class="block-group">
             <h3>Jornada de mañana</h3>
             <div class="field-row">
@@ -351,11 +381,6 @@
             </div>
           </div>
 
-          <h3 class="subseccion">¿Qué cuenta como una jornada al cobrar?</h3>
-          <div class="field">
-            <label for="arreglo-unidad">Una jornada equivale a</label>
-            <select id="arreglo-unidad"></select>
-          </div>
           <p class="label-hint" id="arreglo-unidad-explica"></p>
 
           <div class="form-actions">
@@ -470,7 +495,13 @@
     <!-- ===================== TAB: INFORME ===================== -->
     <section id="tab-informe" class="tab-panel hidden">
       <section class="form-section" id="informe-periodo-section">
-        <h2>Período a mostrar</h2>
+        <h2>Tipo de informe</h2>
+        <div class="segmented segmented-ancho informe-tipo" id="informe-tipo">
+          <button type="button" class="segmented-btn activo" data-tipo="trabajadas">Horas trabajadas</button>
+          <button type="button" class="segmented-btn" data-tipo="deben">Horas que me deben</button>
+        </div>
+
+        <h2>Período</h2>
         <div class="field-row">
           <div class="field">
             <label for="informe-inicio">Desde</label>
@@ -482,6 +513,7 @@
           </div>
         </div>
         <div class="form-actions informe-presets">
+          <button type="button" class="btn btn-secondary btn-small" id="informe-preset-todo">Desde el inicio</button>
           <button type="button" class="btn btn-secondary btn-small" id="informe-preset-mes">Mes actual</button>
           <button type="button" class="btn btn-secondary btn-small" id="informe-preset-30d">Últimos 30 días</button>
           <button type="button" class="btn btn-secondary btn-small" id="informe-preset-60d">Últimos 60 días</button>
@@ -491,76 +523,109 @@
           <label for="informe-anio" class="label-hint">o ver el año completo</label>
           <select id="informe-anio"></select>
         </div>
-      </section>
-
-      <section class="form-section" id="informe-opciones-section">
-        <h2>Qué incluir</h2>
-        <label class="switch-option">
+        <label class="switch-option" id="informe-opcion-descripciones">
           <input type="checkbox" id="informe-incluir-descripciones" checked />
-          Descripción de cada día (resumida y con la ortografía corregida)
+          Incluir la descripción de cada día (resumida y con la ortografía corregida)
         </label>
-        <label class="switch-option">
-          <input type="checkbox" id="informe-incluir-arreglo" />
-          Arreglo de horas (lo que se me debe o debo en el período)
-        </label>
+        <p class="label-hint informe-editar-hint">¿Ves algo raro? Toca ✏️ en un día para corregirlo: el cambio se guarda en toda la app.</p>
       </section>
 
-      <section class="form-section">
-        <h2>Resumen del período</h2>
-        <p class="label-hint" id="informe-resumen-hint">Horas que pedía el contrato y horas trabajadas en el período elegido.</p>
-        <div class="stats-cards">
-          <div class="stat-card">
-            <span class="stat-label">Horas según contrato</span>
-            <span class="stat-value" id="informe-meta-mes-value">0h 00m</span>
-            <span class="stat-sub" id="informe-meta-mes-sub"></span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Horas trabajadas</span>
-            <span class="stat-value" id="informe-trabajado-mes-value">0h 00m</span>
-            <span class="stat-sub" id="informe-trabajado-mes-sub"></span>
-          </div>
-        </div>
-      </section>
-
-      <section class="form-section">
+      <section class="form-section informe-encabezado">
         <div class="list-header">
-          <h2>Detalle del período</h2>
+          <div>
+            <h2 id="informe-doc-titulo">Informe de horas trabajadas</h2>
+            <p class="informe-doc-sub" id="informe-doc-sub"></p>
+          </div>
           <button type="button" class="btn btn-secondary btn-small" id="informe-print-btn">🖨️ Imprimir / PDF</button>
         </div>
         <p class="empty-state hidden" id="informe-empty-state">Selecciona un período con al menos un día.</p>
-        <div class="table-wrap informe-table-wrap" id="informe-table-wrap">
-          <table class="data-table" id="informe-table">
-            <thead>
-              <tr>
-                <th>Día</th>
-                <th>Fecha</th>
-                <th>Jornadas (horarios)</th>
-                <th>Total día</th>
-              </tr>
-            </thead>
-            <tbody id="informe-table-body"></tbody>
-            <tfoot>
-              <tr>
-                <th colspan="3">Total del período</th>
-                <th id="informe-total-periodo">0h 00m</th>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
       </section>
 
-      <section class="form-section hidden" id="informe-arreglo-section">
-        <h2>Arreglo de horas del período</h2>
-        <p class="label-hint" id="informe-arreglo-contrato"></p>
-        <div class="informe-arreglo-cifras" id="informe-arreglo-cifras"></div>
-        <div class="table-wrap">
-          <table class="data-table" id="informe-arreglo-tabla">
-            <thead><tr><th>Mes</th><th>Trabajadas</th><th>Según contrato</th><th>Saldo</th></tr></thead>
-            <tbody id="informe-arreglo-body"></tbody>
-          </table>
-        </div>
-        <p class="label-hint">No se cuentan como días a trabajar los feriados, los días sin convocatoria ni las licencias.</p>
-      </section>
+      <!-- Informe de horas trabajadas -->
+      <div id="informe-vista-trabajadas">
+        <section class="form-section">
+          <h2>Resumen del período</h2>
+          <div class="stats-cards">
+            <div class="stat-card">
+              <span class="stat-label">Horas según contrato</span>
+              <span class="stat-value" id="informe-meta-mes-value">0h 00m</span>
+              <span class="stat-sub" id="informe-meta-mes-sub"></span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Horas trabajadas</span>
+              <span class="stat-value" id="informe-trabajado-mes-value">0h 00m</span>
+              <span class="stat-sub" id="informe-trabajado-mes-sub"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h2>Detalle del período</h2>
+          <div class="table-wrap informe-table-wrap" id="informe-table-wrap">
+            <table class="data-table" id="informe-table">
+              <thead>
+                <tr>
+                  <th>Día</th>
+                  <th>Fecha</th>
+                  <th>Jornadas (horarios)</th>
+                  <th>Total día</th>
+                </tr>
+              </thead>
+              <tbody id="informe-table-body"></tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="3">Total del período</th>
+                  <th id="informe-total-periodo">0h 00m</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Informe de horas que me deben -->
+      <div id="informe-vista-deben" class="hidden">
+        <section class="form-section">
+          <h2>Resumen</h2>
+          <p class="label-hint" id="informe-deben-contrato"></p>
+          <div class="informe-arreglo-cifras" id="informe-deben-cifras"></div>
+          <p class="informe-deben-equiv" id="informe-deben-equiv"></p>
+        </section>
+
+        <section class="form-section">
+          <h2>Detalle por mes</h2>
+          <div class="table-wrap">
+            <table class="data-table tabla-deben" id="informe-deben-meses">
+              <thead><tr><th>Mes</th><th>Trabajé</th><th>Contrato</th><th>Libres</th><th>Saldo</th></tr></thead>
+              <tbody id="informe-deben-meses-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="form-section" id="informe-deben-libres-section">
+          <h2>Horas libres ocupadas</h2>
+          <p class="label-hint">Días no trabajados que se pagaron con horas a favor.</p>
+          <div class="table-wrap">
+            <table class="data-table tabla-deben">
+              <thead><tr><th>Fecha</th><th>Parte del día</th><th>Horas</th><th>Motivo</th></tr></thead>
+              <tbody id="informe-deben-libres-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h2>Detalle día por día</h2>
+          <p class="label-hint">Solo días con horas trabajadas, horas de contrato o días libres, hasta hoy.</p>
+          <div class="table-wrap">
+            <table class="data-table tabla-deben" id="informe-deben-dias">
+              <thead><tr><th>Fecha</th><th>Trabajé</th><th>Contrato</th><th>Libre</th><th>Saldo</th></tr></thead>
+              <tbody id="informe-deben-dias-body"></tbody>
+              <tfoot id="informe-deben-dias-foot"></tfoot>
+            </table>
+          </div>
+          <p class="label-hint">No cuentan como días a trabajar los fines de semana, feriados, días sin convocatoria, licencias ni días libres.</p>
+        </section>
+      </div>
     </section>
 
     <section id="tab-config" class="tab-panel hidden">
@@ -702,6 +767,73 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL: OCUPAR HORAS LIBRES ===================== -->
+  <div class="modal-overlay hidden" id="libre-modal">
+    <div class="modal modal-largo" role="dialog" aria-modal="true" aria-labelledby="libre-modal-titulo">
+      <h2 id="libre-modal-titulo">🌴 Ocupar horas libres</h2>
+      <p class="label-hint">Para un día (o parte de él) que no trabajas y que se paga con las horas que te deben. Ese día no cuenta como día a trabajar y las horas que elijas se descuentan de tu saldo.</p>
+      <div class="libre-saldo" id="libre-saldo"></div>
+      <div class="field-row">
+        <div class="field">
+          <label for="libre-desde">Desde</label>
+          <input type="date" id="libre-desde" />
+        </div>
+        <div class="field">
+          <label for="libre-hasta">Hasta</label>
+          <input type="date" id="libre-hasta" />
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label">¿Qué parte del día?</span>
+        <div class="libre-opciones" id="libre-opciones" role="radiogroup" aria-label="Parte del día"></div>
+      </div>
+      <div class="field hidden" id="libre-otra-wrap">
+        <label for="libre-otra-horas">Horas por día</label>
+        <input type="number" id="libre-otra-horas" min="0.25" max="12" step="0.25" inputmode="decimal" placeholder="Ej: 2" />
+      </div>
+      <div class="field">
+        <label for="libre-motivo">Motivo <span class="label-hint">(opcional)</span></label>
+        <input type="text" id="libre-motivo" maxlength="120" placeholder="Ej: Enfermo, sin licencia" />
+      </div>
+      <div class="libre-resumen" id="libre-resumen" aria-live="polite"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="libre-confirmar">Ocupar horas</button>
+        <button type="button" class="btn btn-secondary" id="libre-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: EDITAR UN DÍA (desde el informe) ===================== -->
+  <div class="modal-overlay hidden" id="editor-modal">
+    <div class="modal modal-largo" role="dialog" aria-modal="true" aria-labelledby="editor-titulo">
+      <h2 id="editor-titulo">Editar jornada</h2>
+      <p class="label-hint">Lo que cambies aquí se guarda en toda la app: historial, estadísticas, arreglo de horas e informes.</p>
+      <div id="editor-jornadas"></div>
+      <span class="error-msg" id="editor-error"></span>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary btn-small" id="editor-add-jornada">➕ Agregar jornada</button>
+      </div>
+      <div class="field">
+        <label for="editor-libre">Horas libres ocupadas este día</label>
+        <select id="editor-libre"></select>
+        <input type="number" class="hidden" id="editor-libre-horas" min="0.25" max="12" step="0.25" inputmode="decimal" aria-label="Horas libres ocupadas" placeholder="Horas" />
+      </div>
+      <div class="field">
+        <span class="field-label">Actividades</span>
+        <div id="editor-actividades"></div>
+      </div>
+      <div class="field">
+        <label for="editor-nota">Nota / descripción</label>
+        <textarea id="editor-nota" rows="3"></textarea>
+      </div>
+      <div class="total-preview" id="editor-total"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="editor-guardar">Guardar cambios</button>
+        <button type="button" class="btn btn-secondary" id="editor-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== MODAL: CONFIRMAR IMPORTACIÓN ===================== -->
   <div class="modal-overlay hidden" id="import-confirm-modal">
     <div class="modal">
@@ -727,6 +859,8 @@
   <script src="js/periodo.js"></script>
   <script src="js/resumen.js"></script>
   <script src="js/tabs.js"></script>
+  <script src="js/diaslibres.js"></script>
+  <script src="js/editor.js"></script>
   <script src="js/marcaje.js"></script>
   <script src="js/estadisticas.js"></script>
   <script src="js/licencias.js"></script>
@@ -738,6 +872,7 @@
   <script src="js/export.js"></script>
   <script src="js/backup.js"></script>
   <script src="js/sync.js"></script>
+  <script src="js/migraciones.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

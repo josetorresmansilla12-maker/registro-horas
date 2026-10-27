@@ -3,7 +3,7 @@
 // muestra la versión más nueva cuando hay internet, y el caché solo se usa
 // si el teléfono está sin conexión.
 
-var CACHE_NAME = "registro-horas-cache-v21";
+var CACHE_NAME = "registro-horas-cache-v22";
 var CORE_ASSETS = [
   "./",
   "./index.html",
@@ -20,6 +20,8 @@ var CORE_ASSETS = [
   "./js/periodo.js",
   "./js/resumen.js",
   "./js/tabs.js",
+  "./js/diaslibres.js",
+  "./js/editor.js",
   "./js/marcaje.js",
   "./js/estadisticas.js",
   "./js/licencias.js",
@@ -31,6 +33,7 @@ var CORE_ASSETS = [
   "./js/export.js",
   "./js/backup.js",
   "./js/sync.js",
+  "./js/migraciones.js",
   "./js/main.js"
 ];
 

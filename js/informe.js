@@ -2,10 +2,13 @@
 
 // ---------- Tab: Informe ----------
 //
-// Vista pensada para compartir con la jefatura: horas trabajadas día a día,
-// con la descripción de cada día resumida y corregida (sin tocar la nota
-// original). El balance de lo que se debe solo aparece si marcas "Incluir
-// arreglo de horas".
+// Dos informes para compartir con la jefatura, sobre el mismo período:
+//  - "Horas trabajadas": día a día, con la descripción de cada día resumida y
+//    corregida (sin tocar la nota original).
+//  - "Horas que me deben": saldo según el contrato, detalle por mes, horas
+//    libres ocupadas y el respaldo día por día.
+// En ambos, el botón ✏️ de cada día abre el editor (editor.js): lo que se
+// corrige ahí queda guardado en toda la app.
 
 var informeInicioInput = rhEl("informe-inicio");
 var informeFinInput = rhEl("informe-fin");
@@ -32,6 +35,12 @@ function rhInformeAplicarDias(n) {
   rhInformeSetRango(rhDateToISO(d), hoy);
 }
 
+// Todo lo registrado: desde el inicio del seguimiento hasta hoy.
+function rhInformeDesdeInicio() {
+  rhInformeSetRango(rhBalanceStartDate(), rhTodayISO());
+}
+
+rhEl("informe-preset-todo").addEventListener("click", rhInformeDesdeInicio);
 rhEl("informe-preset-mes").addEventListener("click", rhInformeMesActual);
 rhEl("informe-preset-30d").addEventListener("click", function () { rhInformeAplicarDias(30); });
 rhEl("informe-preset-60d").addEventListener("click", function () { rhInformeAplicarDias(60); });
@@ -79,6 +88,34 @@ rhEl("informe-print-btn").addEventListener("click", function () {
   window.print();
 });
 
+// ---- Tipo de informe (se recuerda en este dispositivo) ----
+
+var rhInformeTipo = rhPrefGet("rh_pref_informe_tipo", "trabajadas") === "deben" ? "deben" : "trabajadas";
+
+rhEl("informe-tipo").addEventListener("click", function (e) {
+  var b = e.target.closest(".segmented-btn");
+  if (!b) return;
+  var tipo = b.getAttribute("data-tipo");
+  if (tipo === rhInformeTipo) return;
+  rhInformeTipo = tipo;
+  rhPrefSet("rh_pref_informe_tipo", rhInformeTipo);
+  // Lo que te deben se mira desde el inicio; las horas trabajadas, por mes.
+  if (tipo === "deben") rhInformeDesdeInicio();
+  else rhInformeMesActual();
+});
+
+// Botón ✏️ para corregir un día desde el informe (no se imprime).
+function rhInformeBotonEditar(iso) {
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "btn-editar-dia";
+  b.textContent = "✏️";
+  b.title = "Editar este día";
+  b.setAttribute("aria-label", "Editar el " + rhFormatDateDisplay(iso));
+  b.addEventListener("click", function () { rhAbrirEditorDia(iso); });
+  return b;
+}
+
 function rhInformeBlockLabel(minutes) {
   return minutes > 0 ? rhMinutesToHM(minutes) : "—";
 }
@@ -86,17 +123,10 @@ function rhInformeBlockLabel(minutes) {
 // ---- Qué incluir (se recuerda en este dispositivo) ----
 
 var informeIncluirDescripciones = rhEl("informe-incluir-descripciones");
-var informeIncluirArreglo = rhEl("informe-incluir-arreglo");
 informeIncluirDescripciones.checked = rhPrefGet("rh_pref_informe_descripciones", "1") === "1";
-informeIncluirArreglo.checked = rhPrefGet("rh_pref_informe_arreglo", "0") === "1";
 
 informeIncluirDescripciones.addEventListener("change", function () {
   rhPrefSet("rh_pref_informe_descripciones", informeIncluirDescripciones.checked ? "1" : "0");
-  renderInforme();
-});
-
-informeIncluirArreglo.addEventListener("change", function () {
-  rhPrefSet("rh_pref_informe_arreglo", informeIncluirArreglo.checked ? "1" : "0");
   renderInforme();
 });
 
@@ -113,30 +143,43 @@ function rhInformeDescripcion(iso, registro) {
 function renderInforme() {
   var inicio = informeInicioInput.value;
   var fin = informeFinInput.value;
-  var hoy = rhTodayISO();
-  var config = rhLoadConfig();
   var rangoValido = inicio && fin && rhCompareISO(fin, inicio) >= 0;
+  var deben = rhInformeTipo === "deben";
 
-  // ---- Resumen del período elegido (sin balance) ----
-  if (rangoValido) {
-    var metaMin = rhMetaEnRango(inicio, fin);
-    var desglose = rhStatsDesgloseCuota({ start: inicio, end: fin });
-    var valores = Object.keys(desglose.grupos);
-    rhEl("informe-meta-mes-value").textContent = rhMinutesToHM(metaMin);
-    rhEl("informe-meta-mes-sub").textContent = rhPlural(desglose.conMeta, "día hábil", "días hábiles") +
-      (valores.length === 1 ? " × " + rhHorasCorto(Number(valores[0])) : "") + " (sin feriados ni licencias)";
-    rhEl("informe-trabajado-mes-value").textContent = rhMinutesToHM(rhWorkedMinutesInRange(inicio, fin));
-    rhEl("informe-trabajado-mes-sub").textContent = "Del " + rhFormatDateDisplay(inicio) + " al " + rhFormatDateDisplay(fin);
-  }
-
-  // ---- Detalle del período seleccionado ----
-  var tbody = rhEl("informe-table-body");
-  rhClear(tbody);
-  rhEl("informe-empty-state").classList.toggle("hidden", rangoValido);
-  rhEl("informe-table-wrap").classList.toggle("hidden", !rangoValido);
-  rhEl("informe-arreglo-section").classList.toggle("hidden", !rangoValido || !informeIncluirArreglo.checked);
+  rhEl("informe-tipo").querySelectorAll(".segmented-btn").forEach(function (b) {
+    b.classList.toggle("activo", b.getAttribute("data-tipo") === rhInformeTipo);
+  });
+  rhEl("informe-opcion-descripciones").classList.toggle("hidden", deben);
+  rhEl("informe-doc-titulo").textContent = deben ? "Informe de horas que me deben" : "Informe de horas trabajadas";
+  rhEl("informe-doc-sub").textContent = rangoValido
+    ? "Del " + rhFormatDateDisplay(inicio) + " al " + rhFormatDateDisplay(fin) + " · Contrato: " + rhArregloTextoContrato(rhLoadConfig())
+    : "";
+  rhEl("informe-empty-state").classList.toggle("hidden", !!rangoValido);
+  rhEl("informe-vista-trabajadas").classList.toggle("hidden", deben || !rangoValido);
+  rhEl("informe-vista-deben").classList.toggle("hidden", !deben || !rangoValido);
   if (!rangoValido) return;
 
+  if (deben) rhInformeRenderDeben(inicio, fin);
+  else rhInformeRenderTrabajadas(inicio, fin);
+}
+
+// ---- Informe de horas trabajadas ----
+
+function rhInformeRenderTrabajadas(inicio, fin) {
+  var hoy = rhTodayISO();
+  var config = rhLoadConfig();
+
+  var metaMin = rhMetaEnRango(inicio, fin);
+  var desglose = rhStatsDesgloseCuota({ start: inicio, end: fin });
+  var valores = Object.keys(desglose.grupos);
+  rhEl("informe-meta-mes-value").textContent = rhMinutesToHM(metaMin);
+  rhEl("informe-meta-mes-sub").textContent = rhPlural(desglose.conMeta, "día hábil", "días hábiles") +
+    (valores.length === 1 ? " × " + rhHorasCorto(Number(valores[0])) : "") + " (sin feriados, licencias ni días libres)";
+  rhEl("informe-trabajado-mes-value").textContent = rhMinutesToHM(rhWorkedMinutesInRange(inicio, fin));
+  rhEl("informe-trabajado-mes-sub").textContent = "Del " + rhFormatDateDisplay(inicio) + " al " + rhFormatDateDisplay(fin);
+
+  var tbody = rhEl("informe-table-body");
+  rhClear(tbody);
   var conDescripciones = informeIncluirDescripciones.checked;
   var totalMin = 0;
 
@@ -182,7 +225,9 @@ function renderInforme() {
     tr.appendChild(tdJornadas);
 
     var tdTotal = document.createElement("td");
-    tdTotal.textContent = rhInformeBlockLabel(minTotal);
+    tdTotal.className = "celda-total-editar";
+    tdTotal.appendChild(document.createTextNode(rhInformeBlockLabel(minTotal)));
+    tdTotal.appendChild(rhInformeBotonEditar(iso));
     tr.appendChild(tdTotal);
     tbody.appendChild(tr);
 
@@ -200,25 +245,33 @@ function renderInforme() {
   });
 
   rhEl("informe-total-periodo").textContent = rhMinutesToHM(totalMin);
-  if (informeIncluirArreglo.checked) rhInformeRenderArreglo(inicio, fin, config);
 }
 
-// ---- Arreglo de horas del período (opcional) ----
+// ---- Informe de horas que me deben ----
 
-function rhInformeRenderArreglo(inicio, fin, config) {
+function rhInformeCelda(tr, texto, clase) {
+  var td = document.createElement("td");
+  td.textContent = texto;
+  if (clase) td.className = clase;
+  tr.appendChild(td);
+  return td;
+}
+
+function rhInformeRenderDeben(inicio, fin) {
+  var config = rhLoadConfig();
+  var hoy = rhTodayISO();
   var b = rhBalancePeriodo(inicio, fin);
-  var unidad = rhArregloUnidadElegida(config, b.hasta);
-  var dias = config.diasLaborales.length || 5;
-  var semanaMin = unidad.minutos * dias;
+  var norma = rhJornadasNorma(config);
   var abs = Math.abs(b.balanceMin);
   var favor = b.balanceMin > 1;
   var contra = b.balanceMin < -1;
 
-  rhEl("informe-arreglo-contrato").textContent = "Contrato: " + rhArregloTextoContrato(config) +
-    ". Calculado del " + rhFormatDateDisplay(b.desde) + " al " + rhFormatDateDisplay(b.hasta) +
-    (rhCompareISO(b.hasta, fin) < 0 ? " (hasta hoy)" : "") + ".";
+  rhEl("informe-deben-contrato").textContent = "Calculado del " + rhFormatDateDisplay(b.desde) + " al " + rhFormatDateDisplay(b.hasta) +
+    (rhCompareISO(b.hasta, fin) < 0 ? " (hasta hoy)" : "") + ". Contrato: " + rhArregloTextoContrato(config) + " = " +
+    rhMinutesToHM(rhMetaDiariaMinutos(config, b.hasta)) + " por día hábil. Horario: " + norma.manana.horario + " y " + norma.tarde.horario + ".";
 
-  var cifras = rhEl("informe-arreglo-cifras");
+  // Cifras principales.
+  var cifras = rhEl("informe-deben-cifras");
   rhClear(cifras);
   function cifra(etiqueta, valor, clase) {
     var c = document.createElement("div");
@@ -233,28 +286,86 @@ function rhInformeRenderArreglo(inicio, fin, config) {
   }
   cifra("Horas trabajadas", rhMinutesToHM(b.trabajadoMin));
   cifra("Horas según contrato", rhMinutesToHM(b.esperadoMin));
+  cifra("Horas libres ocupadas", rhMinutesToHM(b.libresMin) + (b.diasLibres ? " (" + rhPlural(b.diasLibres, "día", "días") + ")" : ""));
   cifra(favor ? "Saldo a mi favor" : contra ? "Saldo en contra" : "Saldo", favor || contra ? rhMinutesToHM(abs) : "Al día",
     favor ? "favor" : contra ? "contra" : "");
-  cifra("En " + unidad.plural + " (" + rhHorasCorto(unidad.minutos) + ")", unidad.minutos > 0 ? rhNumero(abs / unidad.minutos) : "—");
-  cifra("En semanas de " + rhHorasCorto(semanaMin) + " (lun a vie)", semanaMin > 0 ? rhNumero(abs / semanaMin) : "—");
+  rhEl("informe-deben-equiv").textContent = favor || contra
+    ? (favor ? "Me deben " : "Debo ") + rhMinutesToHM(abs) + ", que equivalen a " +
+      rhArregloEnJornadas(abs, norma.completa, "día completo", "días completos") + " (" + norma.completa.horario + ")."
+    : "";
 
-  var tbody = rhEl("informe-arreglo-body");
-  rhClear(tbody);
+  // Por mes.
+  var tbodyMeses = rhEl("informe-deben-meses-body");
+  rhClear(tbodyMeses);
   rhMesesEnRango(inicio, fin).forEach(function (mes) {
     var r = rhMonthRange(mes);
     var bm = rhBalancePeriodo(rhCompareISO(r.start, inicio) < 0 ? inicio : r.start, rhCompareISO(r.end, fin) > 0 ? fin : r.end);
-    if (bm.trabajadoMin === 0 && bm.esperadoMin === 0) return;
+    if (bm.trabajadoMin === 0 && bm.esperadoMin === 0 && bm.libresMin === 0) return;
     var tr = document.createElement("tr");
     tr.className = "fila-" + rhBalanceTagClass(bm.balanceMin);
-    [rhNombreMes(mes, true), rhMinutesToHM(bm.trabajadoMin), rhMinutesToHM(bm.esperadoMin), rhConSigno(bm.balanceMin)].forEach(function (t, i) {
-      var td = document.createElement("td");
-      td.textContent = t;
-      if (i === 3) td.className = "celda-saldo";
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
+    rhInformeCelda(tr, rhNombreMes(mes, true));
+    rhInformeCelda(tr, rhMinutosCorto(bm.trabajadoMin));
+    rhInformeCelda(tr, rhMinutosCorto(bm.esperadoMin));
+    rhInformeCelda(tr, bm.libresMin > 0 ? "−" + rhMinutosCorto(bm.libresMin) : "—");
+    rhInformeCelda(tr, (bm.balanceMin > 0 ? "+" : bm.balanceMin < 0 ? "−" : "") + rhMinutosCorto(Math.abs(bm.balanceMin)), "celda-saldo");
+    tbodyMeses.appendChild(tr);
   });
+
+  // Horas libres ocupadas en el período (las agendadas a futuro no se cuentan aún).
+  var libres = rhDiasLibresLista(inicio, fin).filter(function (r) { return rhCompareISO(r.fecha, hoy) <= 0; });
+  rhEl("informe-deben-libres-section").classList.toggle("hidden", libres.length === 0);
+  var tbodyLibres = rhEl("informe-deben-libres-body");
+  rhClear(tbodyLibres);
+  libres.forEach(function (r) {
+    var dl = rhDiaLibre(r);
+    var tr = document.createElement("tr");
+    tr.className = "fila-dia-libre";
+    rhInformeCelda(tr, rhDayOfWeekLabel(r.fecha, true) + " " + rhFormatDateDisplay(r.fecha).slice(0, 5), "celda-fecha");
+    rhInformeCelda(tr, rhDiaLibreNombre(dl));
+    rhInformeCelda(tr, rhMinutesToHM(dl.minutos));
+    rhInformeCelda(tr, dl.motivo || "—");
+    tbodyLibres.appendChild(tr);
+  });
+
+  // Día por día (respaldo), hasta hoy.
+  var tbodyDias = rhEl("informe-deben-dias-body");
+  rhClear(tbodyDias);
+  var tot = { t: 0, e: 0, l: 0 };
+  if (rhCompareISO(b.desde, b.hasta) <= 0) {
+    rhDaysBetweenInclusive(b.desde, b.hasta).forEach(function (iso) {
+      var registro = rhGetRegistroByFecha(iso);
+      var t = rhRegistroMinutes(registro);
+      var l = rhDiaLibreMinutos(registro);
+      var e = iso === hoy && t === 0 ? 0 : rhMinutosEsperadosDia(iso, config);
+      if (t === 0 && e === 0 && l === 0) return;
+      tot.t += t;
+      tot.e += e;
+      tot.l += l;
+      var saldo = t - e - l;
+      var tr = document.createElement("tr");
+      tr.className = rhClaseFilaDia(rhEstadoDia(iso, config, hoy)) + " fila-" + rhBalanceTagClass(saldo);
+      rhInformeCelda(tr, rhDayOfWeekLabel(iso, true) + " " + rhFormatDateDisplay(iso).slice(0, 5), "celda-fecha");
+      rhInformeCelda(tr, t > 0 ? rhMinutosCorto(t) : "—");
+      rhInformeCelda(tr, e > 0 ? rhMinutosCorto(e) : "—");
+      rhInformeCelda(tr, l > 0 ? "−" + rhMinutosCorto(l) : "—");
+      var tdSaldo = rhInformeCelda(tr, (saldo > 0 ? "+" : saldo < 0 ? "−" : "") + rhMinutosCorto(Math.abs(saldo)), "celda-saldo celda-total-editar");
+      tdSaldo.appendChild(rhInformeBotonEditar(iso));
+      tbodyDias.appendChild(tr);
+    });
+  }
+  var foot = rhEl("informe-deben-dias-foot");
+  rhClear(foot);
+  var trTot = document.createElement("tr");
+  var saldoTot = tot.t - tot.e - tot.l;
+  ["Total", rhMinutosCorto(tot.t), rhMinutosCorto(tot.e), tot.l > 0 ? "−" + rhMinutosCorto(tot.l) : "—",
+    (saldoTot > 0 ? "+" : saldoTot < 0 ? "−" : "") + rhMinutosCorto(Math.abs(saldoTot))].forEach(function (texto) {
+    var th = document.createElement("th");
+    th.textContent = texto;
+    trTot.appendChild(th);
+  });
+  foot.appendChild(trTot);
 }
 
 rhInformePoblarAnios();
-rhInformeMesActual();
+if (rhInformeTipo === "deben") rhInformeDesdeInicio();
+else rhInformeMesActual();

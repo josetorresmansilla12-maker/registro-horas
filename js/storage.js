@@ -269,6 +269,21 @@ function rhSaveConfig(config) {
   }
 }
 
+// Jornadas del horario normal (mañana, tarde y día completo) con su duración:
+// sirven para ocupar horas libres y para decir cuántos días libres alcanzan.
+function rhJornadasNorma(config) {
+  config = config || rhLoadConfig();
+  var b1 = config.horarioBase.bloque1;
+  var b2 = config.horarioBase.bloque2;
+  var m1 = rhBlockMinutes(b1);
+  var m2 = rhBlockMinutes(b2);
+  return {
+    manana: { id: "manana", nombre: "Mañana", horario: rhFormatBloque(b1), minutos: m1 },
+    tarde: { id: "tarde", nombre: "Tarde", horario: rhFormatBloque(b2), minutos: m2 },
+    completa: { id: "completa", nombre: "Día completo", horario: rhFormatBloque(b1) + " y " + rhFormatBloque(b2), minutos: m1 + m2 }
+  };
+}
+
 // Fecha desde la que se cuentan horas esperadas (inicio de tu contrato / del
 // seguimiento): la configurada a mano, o si no existe, la del registro más
 // antiguo, o si tampoco hay, hoy. Se busca el más antiguo en vez de tomar el
@@ -295,6 +310,8 @@ function rhBalanceStartDate() {
 //    cubiertos por un feriado, "no convocado" o licencia que ajusta la meta,
 //    en días "aún no contratado", ni antes del inicio del seguimiento.
 //  - Toda hora trabajada suma, sin importar el día.
+//  - Un día libre (pagado con horas a favor) no se espera, y en cambio se
+//    descuentan del saldo las horas libres ocupadas ese día.
 // La meta de un mes es la suma de lo esperado en sus días: un mes con 22 días
 // hábiles pide 88 h y uno con 21 pide 84 h (antes era un 86,67 h fijo).
 
@@ -361,26 +378,33 @@ function rhWorkedMinutesInRange(start, end) {
   return total;
 }
 
-// Balance de un período (horas trabajadas − horas esperadas) contado solo
-// hasta hoy: lo que aún no pasa todavía no se debe. Hoy se cuenta como
-// esperado solo si ya tiene horas registradas, para no figurar "debiendo" la
-// jornada que está en curso.
+// Balance de un período (horas trabajadas − horas esperadas − horas libres
+// ocupadas) contado solo hasta hoy: lo que aún no pasa todavía no se debe
+// (un día libre agendado para más adelante se descuenta cuando llegue). Hoy
+// se cuenta como esperado solo si ya tiene horas registradas, para no figurar
+// "debiendo" la jornada que está en curso.
 function rhBalancePeriodo(start, end) {
   var config = rhLoadConfig();
   var today = rhTodayISO();
   var inicio = rhBalanceStartDate();
   var desde = rhCompareISO(start, inicio) < 0 ? inicio : start;
   var hasta = rhCompareISO(end, today) < 0 ? end : today;
-  var res = { esperadoMin: 0, trabajadoMin: 0, balanceMin: 0, desde: desde, hasta: hasta };
+  var res = { esperadoMin: 0, trabajadoMin: 0, libresMin: 0, diasLibres: 0, balanceMin: 0, desde: desde, hasta: hasta };
   if (rhCompareISO(desde, hasta) > 0) return res;
 
   rhDaysBetweenInclusive(desde, hasta).forEach(function (iso) {
-    var trabajado = rhRegistroMinutes(rhGetRegistroByFecha(iso));
+    var registro = rhGetRegistroByFecha(iso);
+    var trabajado = rhRegistroMinutes(registro);
+    var libre = rhDiaLibreMinutos(registro);
     res.trabajadoMin += trabajado;
+    if (libre > 0) {
+      res.libresMin += libre;
+      res.diasLibres++;
+    }
     if (iso === today && trabajado === 0) return;
     res.esperadoMin += rhMinutosEsperadosDia(iso, config);
   });
-  res.balanceMin = res.trabajadoMin - res.esperadoMin;
+  res.balanceMin = res.trabajadoMin - res.esperadoMin - res.libresMin;
   return res;
 }
 
@@ -445,12 +469,16 @@ function rhEstadoDia(iso, config, today) {
     label: ""
   };
 
+  e.libre = rhDiaLibre(registro);
+
   if (registro && registro.estado === RH_ESTADO_NO_CONTRATADO) {
     e.clave = "sin_contrato"; e.label = "Aún no contratado";
   } else if (minutos > 0) {
     // Cualquier día trabajado cuenta como cumplido, sin importar las horas.
     e.clave = "cumplido"; e.label = "Cumplido";
     e.conflicto = !!(laboral && licencia && !esFeriado && rhLicenciaAjustaMeta(licencia));
+  } else if (e.libre) {
+    e.clave = "dia_libre"; e.label = rhDiaLibreNombre(e.libre);
   } else if (esFeriado) {
     e.clave = "feriado"; e.label = "Feriado";
   } else if (!laboral) {
@@ -479,7 +507,57 @@ function rhClaseFilaDia(estado) {
   if (estado.feriado) clases.push("fila-feriado");
   else if (estado.clave === "no_convocado") clases.push("fila-no-convocado");
   else if (estado.clave === "licencia") clases.push("fila-licencia");
+  else if (estado.clave === "dia_libre") clases.push("fila-dia-libre");
   return clases.join(" ");
+}
+
+// ---------- Días libres (horas a favor ocupadas) ----------
+
+// Registros con horas libres ocupadas, de más antiguo a más nuevo (todos, o
+// solo los de un rango).
+function rhDiasLibresLista(start, end) {
+  return rhCachedList(RH_REGISTROS_KEY).list.filter(function (r) {
+    return rhDiaLibre(r) && (!start || rhIsDateInRange(r.fecha, start, end));
+  }).sort(function (a, b) { return rhCompareISO(a.fecha, b.fecha); });
+}
+
+// Saldo para ocupar días libres: el saldo total hasta hoy, menos lo ya
+// agendado para días que todavía no llegan.
+function rhSaldoParaLibres() {
+  var b = rhCalcularBalance();
+  var hoy = rhTodayISO();
+  var agendados = rhDiasLibresLista().filter(function (r) { return rhCompareISO(r.fecha, hoy) > 0; });
+  var agendadoMin = agendados.reduce(function (s, r) { return s + rhDiaLibreMinutos(r); }, 0);
+  return {
+    saldoMin: b.balanceMin,
+    agendados: agendados,
+    agendadoMin: agendadoMin,
+    disponibleMin: b.balanceMin - agendadoMin
+  };
+}
+
+// Pone o quita horas libres en varios días de una vez (una sola escritura).
+// `cambios`: [{ fecha, diaLibre }] con diaLibre = { jornada, minutos, motivo }
+// o null para quitarlo. Un día que solo existía por su día libre se elimina.
+function rhGuardarDiasLibres(cambios) {
+  var list = rhLoadRegistros();
+  cambios.forEach(function (c) {
+    var idx = list.findIndex(function (r) { return r && r.fecha === c.fecha; });
+    var r = idx === -1 ? null : list[idx];
+    if (c.diaLibre) {
+      if (r) list[idx] = Object.assign({}, r, { diaLibre: c.diaLibre });
+      else list.push({ id: rhUid(), fecha: c.fecha, bloques: [], nota: "", diaLibre: c.diaLibre });
+      return;
+    }
+    if (!r) return;
+    var sin = Object.assign({}, r);
+    delete sin.diaLibre;
+    var vacio = rhRegistroBloques(sin).length === 0 && !(sin.nota || "").trim() &&
+      rhRegistroActividades(sin).length === 0 && !sin.estado;
+    list[idx] = vacio ? null : sin;
+  });
+  list = list.filter(Boolean).sort(function (a, b) { return rhCompareISO(a.fecha, b.fecha); });
+  return rhSaveRegistros(list);
 }
 
 // Días de un rango que conviene revisar:

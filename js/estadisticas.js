@@ -124,13 +124,14 @@ function rhRenderDonut(container, opts) {
 // Dona de balance: la parte azul es lo esperado que sí se cumplió; la verde,
 // lo trabajado de más (te deben); la roja, lo que falta (debes).
 function rhRenderDonaBalance(container, b) {
-  var cumplido = Math.min(b.trabajadoMin, b.esperadoMin);
+  var pedido = b.esperadoMin + (b.libresMin || 0);
+  var cumplido = Math.min(b.trabajadoMin, pedido);
   var resto = Math.abs(b.balanceMin);
   var favor = b.balanceMin > 1;
   var contra = b.balanceMin < -1;
-  var sinDatos = b.trabajadoMin === 0 && b.esperadoMin === 0;
+  var sinDatos = b.trabajadoMin === 0 && pedido === 0;
   rhRenderDonut(container, {
-    total: Math.max(b.trabajadoMin, b.esperadoMin),
+    total: Math.max(b.trabajadoMin, pedido),
     segmentos: [
       { valor: cumplido, color: RH_COLOR_PRINCIPAL },
       { valor: favor || contra ? resto : 0, color: favor ? RH_COLOR_VERDE : RH_COLOR_ROJO }
@@ -207,7 +208,7 @@ function rhMomentoPeriodo(p) {
 function rhStatsDesgloseCuota(range) {
   var config = rhLoadConfig();
   var inicio = rhBalanceStartDate();
-  var d = { habiles: 0, antes: 0, sinContrato: 0, feriados: 0, noConvocados: 0, licencias: 0, conMeta: 0, grupos: {} };
+  var d = { habiles: 0, antes: 0, sinContrato: 0, feriados: 0, noConvocados: 0, licencias: 0, diasLibres: 0, conMeta: 0, grupos: {} };
   rhDaysBetweenInclusive(range.start, range.end).forEach(function (iso) {
     if (!rhEsDiaLaboral(iso, config)) return;
     d.habiles++;
@@ -226,6 +227,8 @@ function rhStatsDesgloseCuota(range) {
       else d.licencias++;
     } else if (reg && reg.estado === RH_ESTADO_NO_CONTRATADO) {
       d.sinContrato++;
+    } else if (rhDiaLibre(reg)) {
+      d.diasLibres++;
     } else {
       d.noConvocados++;
     }
@@ -246,6 +249,7 @@ function rhStatsTextoCalculo(d, metaMin) {
   if (d.feriados) partes.push(rhPlural(d.feriados, "feriado", "feriados"));
   if (d.noConvocados) partes.push(rhPlural(d.noConvocados, "no convocado", "no convocados"));
   if (d.licencias) partes.push(rhPlural(d.licencias, "con licencia", "con licencia"));
+  if (d.diasLibres) partes.push(rhPlural(d.diasLibres, "día libre", "días libres"));
   var valores = Object.keys(d.grupos).map(Number).sort(function (a, b) { return a - b; });
   var porDia;
   if (valores.length <= 1) {
@@ -491,7 +495,8 @@ function rhStatsRenderBalance(p) {
     tag.textContent = rhBalanceTagLabel(b.balanceMin, false);
     sub.textContent = "Del " + rhFormatDateShort(b.desde) + " al " + rhFormatDateShort(b.hasta) +
       (rhCompareISO(b.hasta, p.end) < 0 ? " (hasta hoy)" : "") + ": trabajaste " + rhMinutesToHM(b.trabajadoMin) +
-      " de " + rhMinutesToHM(b.esperadoMin) + " esperadas.";
+      " de " + rhMinutesToHM(b.esperadoMin) + " esperadas" +
+      (b.libresMin > 0 ? " y ocupaste " + rhMinutesToHM(b.libresMin) + " en días libres." : ".");
   }
 
   var acum = rhCalcularBalance();
@@ -500,9 +505,10 @@ function rhStatsRenderBalance(p) {
   tagA.className = "balance-tag " + rhBalanceTagClass(acum.balanceMin);
   tagA.textContent = rhBalanceTagLabel(acum.balanceMin, false);
   rhEl("stats-balance-acum-sub").textContent = "Desde el " + rhFormatDateDisplay(acum.desde) + " hasta hoy: " +
-    rhMinutesToHM(acum.trabajadoMin) + " de " + rhMinutesToHM(acum.esperadoMin) + " esperadas. Es la suma de todos los meses.";
+    rhMinutesToHM(acum.trabajadoMin) + " de " + rhMinutesToHM(acum.esperadoMin) + " esperadas" +
+    (acum.libresMin > 0 ? ", menos " + rhMinutesToHM(acum.libresMin) + " de días libres" : "") + ". Es la suma de todos los meses.";
 
-  rhEl("stats-balance-explica").textContent = "Horas trabajadas menos las que pedía tu contrato, contando solo hasta hoy " +
+  rhEl("stats-balance-explica").textContent = "Horas trabajadas menos las que pedía tu contrato y las horas libres ocupadas, contando solo hasta hoy " +
     "(lo que todavía no ocurre no se cuenta como deuda). Trabajas a honorario: es una referencia personal; para cobrar horas usa la pestaña Arreglo de horas.";
 
   var todos = rhStatsBalancesPorMes();
@@ -568,7 +574,7 @@ function rhStatsRenderDonaDias(p) {
     ariaLabel: c.trabajados + " de " + total + " días hábiles trabajados"
   });
   var partes = [rhPlural(c.trabajados, "trabajado", "trabajados")];
-  if (c.justificados) partes.push(c.justificados + " sin convocatoria/feriado");
+  if (c.justificados) partes.push(c.justificados + " justificados (feriado, sin convocatoria, licencia o día libre)");
   if (c.sinRegistro) partes.push(c.sinRegistro + " sin registro");
   if (c.proximos) partes.push(c.proximos + " por venir");
   rhEl("stats-balance-dias-sub").textContent = partes.join(" · ") + ".";
@@ -662,6 +668,7 @@ var RH_LEYENDA_ESTADOS = [
   { clave: "feriado", label: "Feriado" },
   { clave: "no_laboral", label: "Fin de semana" },
   { clave: "licencia", label: "Licencia" },
+  { clave: "dia_libre", label: "Día libre" },
   { clave: "sin_registro", label: "Sin registro" },
   { clave: "sin_contrato", label: "Aún no contratado" }
 ];
@@ -722,6 +729,7 @@ function rhStatsVistaCalendario(body, p) {
       else if (e.clave === "feriado") info.textContent = "Fer.";
       else if (e.clave === "no_convocado") info.textContent = "N/C";
       else if (e.clave === "licencia") info.textContent = "Lic.";
+      else if (e.clave === "dia_libre") info.textContent = "Libre";
       else if (e.clave === "sin_registro") info.textContent = "?";
       celda.appendChild(info);
       if (e.conflicto) {
@@ -780,6 +788,7 @@ function rhStatsRenderDetalleDia(cont, iso) {
 
   var lineas = [];
   if (e.minutos > 0) lineas.push(rhMinutesToHM(e.minutos) + " · " + rhFormatJornadasRegistro(e.registro));
+  else if (e.libre) lineas.push("🌴 " + rhDiaLibreTexto(e.libre) + ": pagado con horas a favor" + (e.libre.motivo ? " (" + e.libre.motivo + ")" : "") + ".");
   if (e.licencia) {
     lineas.push(rhTipoLicenciaLabel(e.licencia.tipo) + (e.licencia.detalle ? ": " + e.licencia.detalle : "") +
       (e.licencia.fechaInicio !== e.licencia.fechaFin

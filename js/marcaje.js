@@ -186,7 +186,29 @@ function rhMarcajeSetJornadas(bloques) {
   rhMarcajeRenderJornadas();
 }
 
+// Aviso de horas libres ocupadas en la fecha del formulario, con botones para
+// cambiarlas o quitarlas.
+function rhMarcajeMostrarLibre() {
+  var fecha = marcajeFechaInput.value || rhTodayISO();
+  var dl = rhDiaLibre(rhGetRegistroByFecha(fecha));
+  rhEl("marcaje-libre-banner").classList.toggle("hidden", !dl);
+  if (!dl) return;
+  rhEl("marcaje-libre-banner-text").textContent = "🌴 " + rhDiaLibreTexto(dl) + ": este día se pagó con tus horas a favor" +
+    (dl.motivo ? " (" + dl.motivo + ")" : "") + ".";
+}
+
+rhEl("marcaje-ocupar-libre-btn").addEventListener("click", function () {
+  rhAbrirOcuparLibre(marcajeFechaInput.value || rhTodayISO());
+});
+rhEl("marcaje-libre-cambiar").addEventListener("click", function () {
+  rhAbrirOcuparLibre(marcajeFechaInput.value || rhTodayISO());
+});
+rhEl("marcaje-libre-quitar").addEventListener("click", function () {
+  rhQuitarDiaLibre(marcajeFechaInput.value || rhTodayISO());
+});
+
 function rhMarcajeShowLicenciaBanner(fecha) {
+  rhMarcajeMostrarLibre();
   var licencia = rhLicenciaForDate(fecha);
   if (licencia) {
     marcajeLicenciaBannerText.textContent = "Este día está marcado como \"" + rhTipoLicenciaLabel(licencia.tipo) + "\" (del " +
@@ -729,16 +751,18 @@ function rhMarcajeBuildRegistroRow(r) {
   tdDia.textContent = rhDayOfWeekLabel(r.fecha, true);
   tr.appendChild(tdDia);
 
+  var minutos = rhRegistroMinutes(r);
+  var libre = rhDiaLibre(r);
   var tdJornadas = document.createElement("td");
-  tdJornadas.className = "jornadas-cell";
-  tdJornadas.textContent = rhFormatJornadasRegistro(r);
+  tdJornadas.className = "jornadas-cell" + (libre && minutos === 0 ? " celda-estado" : "");
+  tdJornadas.textContent = (libre ? "🌴 " : "") + rhFormatJornadasRegistro(r);
   tr.appendChild(tdJornadas);
 
   var tdTotal = document.createElement("td");
-  tdTotal.textContent = rhMinutesToHM(rhRegistroMinutes(r));
+  tdTotal.textContent = libre && minutos === 0 ? "—" : rhMinutesToHM(minutos);
   tr.appendChild(tdTotal);
 
-  tr.appendChild(rhMarcajeCeldaNota(rhRegistroActividades(r), r.nota));
+  tr.appendChild(rhMarcajeCeldaNota(rhRegistroActividades(r), r.nota || (libre && libre.motivo) || ""));
 
   var tdActions = document.createElement("td");
   tdActions.className = "col-actions";
@@ -817,6 +841,21 @@ function rhMarcajeBuildLicenciaRow(fecha, licencia) {
   return tr;
 }
 
+// Fila de un sábado o domingo sin registro: día de descanso (no es feriado),
+// para seguir el historial semana a semana.
+function rhMarcajeBuildDescansoRow(fecha) {
+  var tr = document.createElement("tr");
+  tr.className = "dia-rojo fila-descanso";
+  [rhFormatDateDisplay(fecha), rhDayOfWeekLabel(fecha, true), "Descanso", "", "", ""].forEach(function (texto, i) {
+    var td = document.createElement("td");
+    if (i < 2) td.className = "celda-fecha";
+    if (i === 2) td.className = "jornadas-cell celda-descanso";
+    td.textContent = texto;
+    tr.appendChild(td);
+  });
+  return tr;
+}
+
 function renderMarcajeTable() {
   var range = rhMonthRange(rhMarcajeMesActual);
   var d = rhParseISO(rhMarcajeMesActual);
@@ -838,15 +877,29 @@ function renderMarcajeTable() {
     })
     .map(function (iso) { return { fecha: iso, licencia: rhLicenciaForDate(iso) }; });
 
+  // Sábados y domingos (días no laborales) ya pasados, desde que empezaste:
+  // aparecen como descanso para que se vea el orden de cada semana.
+  var hoy = rhTodayISO();
+  var inicio = rhBalanceStartDate();
+  var filasDescanso = rhDaysBetweenInclusive(range.start, range.end)
+    .filter(function (iso) {
+      if (fechasConRegistro[iso]) return false;
+      if (rhCompareISO(iso, hoy) > 0 || rhCompareISO(iso, inicio) < 0) return false;
+      return config.diasLaborales.indexOf(rhParseISO(iso).getDay()) === -1;
+    })
+    .map(function (iso) { return { fecha: iso, descanso: true }; });
+
   var filas = registros.map(function (r) { return { fecha: r.fecha, registro: r }; })
-    .concat(filasLicencia)
+    .concat(filasLicencia, filasDescanso)
     .sort(function (a, b) { return rhCompareISO(b.fecha, a.fecha); });
 
   rhClear(marcajeTableBody);
   marcajeEmptyState.classList.toggle("hidden", filas.length > 0);
 
   filas.forEach(function (item) {
-    var tr = item.registro ? rhMarcajeBuildRegistroRow(item.registro) : rhMarcajeBuildLicenciaRow(item.fecha, item.licencia);
+    var tr = item.registro ? rhMarcajeBuildRegistroRow(item.registro)
+      : item.descanso ? rhMarcajeBuildDescansoRow(item.fecha)
+      : rhMarcajeBuildLicenciaRow(item.fecha, item.licencia);
     marcajeTableBody.appendChild(tr);
   });
 
