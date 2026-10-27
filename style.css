@@ -3240,3 +3240,58 @@ body.rueda-abierta {
   font-weight: 700;
   color: var(--color-warning);
 }
+
+.privado-form {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.privado-form-horas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.privado-form .field {
+  margin: 0;
+}
+
+.privado-form .field label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.privado-form input[type="text"] {
+  width: 100%;
+}
+
+.privado-previa {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.privado-form-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.privado-form-acciones .btn-link {
+  margin-left: auto;
+}
+
+.privado-dia.privado-guardado {
+  animation: privado-guardado 1.6s ease-out;
+}
+
+@keyframes privado-guardado {
+  from { background: var(--color-success-bg); border-color: #b9e0cf; }
+  to { background: transparent; }
+}

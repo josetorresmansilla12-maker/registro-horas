@@ -29,9 +29,12 @@ rhTabIds.forEach(function (id) {
 
 // Vuelve a dibujar la pestaña abierta y el historial después de un cambio en
 // los datos (día libre, edición desde el informe, sincronización, etc.).
+// Se conserva la posición de la pantalla para seguir donde estabas.
 function rhRefrescarVistas() {
   var activa = document.querySelector(".tab-btn.active");
+  var y = window.scrollY;
   renderMarcajeTable();
   rhMarcajeMostrarLibre();
   if (activa) rhActivateTab(activa.getAttribute("data-tab"));
+  window.scrollTo(0, y);
 }
